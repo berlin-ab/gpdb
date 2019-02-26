@@ -4,4 +4,5 @@ inputs:
 run:
   path: ./concourse/scripts/new/icw.bash
   dir: gpdb_src
+  user: gpadmin
   
