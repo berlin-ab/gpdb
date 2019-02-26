@@ -5,7 +5,7 @@ resource_types:
       repository: teliaoss/github-pr-resource
 
 resources:
-  - name: gpdb_pr
+  - name: gpdb_src
     type: pull-request
     source:
       repository: berlin-ab/gpdb
@@ -24,30 +24,30 @@ resources:
 anchors:
   - &pr_failure
     put: report_pr_failure
-    resource: gpdb_pr
+    resource: gpdb_src
     params:
-      path: gpdb_pr
+      path: gpdb_src
       status: failure
       
   - &pr_pending
     put: report_pr_pending
-    resource: gpdb_pr
+    resource: gpdb_src
     params:
-      path: gpdb_pr
+      path: gpdb_src
       status: pending
       
   - &pr_success
     put: report_pr_success
-    resource: gpdb_pr
+    resource: gpdb_src
     params:
-      path: gpdb_pr
+      path: gpdb_src
       status: success
       
 tasks:
   - &icw
     task: icw
     image: image
-    file: gpdb_pr/concourse/tasks/new/icw.yml
+    file: gpdb_src/concourse/tasks/new/icw.yml
     timeout: 3h
     on_failure: *pr_failure
     
@@ -68,7 +68,7 @@ jobs:
     max_in_flight: 10
     plan:
     - aggregate:
-      - get: gpdb_pr
+      - get: gpdb_src
         trigger: true
         version: every
       - get: image
