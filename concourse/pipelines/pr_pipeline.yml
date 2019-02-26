@@ -23,13 +23,15 @@ resources:
       
 anchors:
   - &pr_failure
-    put: gpdb_pr
+    put: report_pr_failure
+    resource: gpdb_pr
     params:
       path: gpdb_pr
       status: failure
       
   - &pr_pending
-    put: gpdb_pr
+    put: report_pr_pending
+    resource: gpdb_pr
     params:
       path: gpdb_pr
       status: pending
