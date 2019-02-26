@@ -31,6 +31,9 @@ fetch_and_build_orca() {
     ninja install -C /tmp/orca/build
 }
 
+fetch_and_build_xerces_c
+fetch_and_build_orca
+
 ./configure CC='ccache gcc' \
 	    CXX='ccache g++' \
 	    --prefix=${INSTALL_DIR} \
