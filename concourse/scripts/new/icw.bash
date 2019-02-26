@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -o errexit
+
 sudo chown -R $(whoami) $(pwd)
 
 export CC=$(which gcc)
