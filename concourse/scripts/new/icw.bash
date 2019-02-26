@@ -14,7 +14,7 @@ fetch_and_build_xerces_c() {
 	    cd /tmp/xerces
 	    ./configure CC='ccache gcc' CXX='ccache g++' --disable-network
     )
-    make_install -C /tmp/xerces
+    make install -j 4 -s -C /tmp/xerces
 }
 
 fetch_and_build_orca() {
