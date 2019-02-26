@@ -4,5 +4,7 @@ inputs:
 run:
   path: ./concourse/scripts/new/icw.bash
   dir: gpdb_src
-
+params:
+  # default to empty, override from pipeline
+  CONFIGURE_FLAGS: 
   
