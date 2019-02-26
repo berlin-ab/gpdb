@@ -6,5 +6,7 @@ run:
   dir: gpdb_src
 params:
   # default to empty, override from pipeline
-  CONFIGURE_FLAGS: 
+  CONFIGURE_FLAGS:
+caches:
+  - path: .ccache
   

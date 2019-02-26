@@ -4,11 +4,11 @@ set -o errexit
 
 sudo chown -R $(whoami) $(pwd)
 
-export CC=$(which gcc)
-export CXX=$(which g++)
 export INSTALL_DIR="$PWD/greenplum-db-devel/"
 
-./configure --prefix=${INSTALL_DIR} \
+./configure CC='ccache gcc' \
+	    CXX='ccache g++' \
+	    --prefix=${INSTALL_DIR} \
 	    --with-perl \
 	    --with-python \
 	    --with-libxml \
