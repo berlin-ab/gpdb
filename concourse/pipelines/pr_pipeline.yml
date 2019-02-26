@@ -14,12 +14,11 @@ resources:
       - gpdb-doc/*
       - README*
 
-  - name: ubuntu-gpdb-dev-16
+  - name: docker-image
     type: docker-image
     source:
-      repository: pivotaldata/ubuntu-gpdb-dev
-      tag: '16.04'
-
+      repository: adamberlinpivotal/ubuntu-18-gpdb
+      tag: latest
       
 anchors:
   - &pr_failure
@@ -42,6 +41,17 @@ anchors:
     params:
       path: gpdb_src
       status: success
+
+  - &fetch_pr
+    get: gpdb_src
+    trigger: true
+    version: every
+    on_failure: *pr_failure
+
+  - &fetch_image
+    get: image
+    resource: docker-image
+    on_failure: *pr_failure
       
 tasks:
   - &icw
@@ -60,7 +70,6 @@ tasks:
     <<: *icw
     params:
       CONFIGURE_FLAGS: --disable-orca --without-zstd
-
   
 jobs:
   - name: compile_and_test_gpdb_with_planner
@@ -68,13 +77,8 @@ jobs:
     max_in_flight: 10
     plan:
     - aggregate:
-      - get: gpdb_src
-        trigger: true
-        version: every
-        on_failure: *pr_failure
-      - get: image
-        resource: ubuntu-gpdb-dev-16
-        on_failure: *pr_failure
+      - *fetch_pr
+      - *fetch_image
 
     - *pr_pending
 
@@ -88,13 +92,8 @@ jobs:
     max_in_flight: 10
     plan:
     - aggregate:
-      - get: gpdb_src
-        trigger: true
-        version: every
-        on_failure: *pr_failure
-      - get: image
-        resource: ubuntu-gpdb-dev-16
-        on_failure: *pr_failure
+      - *fetch_pr
+      - *fetch_image
 
     - *pr_pending
 
