@@ -33,7 +33,6 @@ fetch_and_build_orca() {
     sudo ninja install -C /tmp/orca/build
 }
 
-fetch_and_build_xerces_c
 fetch_and_build_orca
 
 ./configure CC='ccache gcc' \
