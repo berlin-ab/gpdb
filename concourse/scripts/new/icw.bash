@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+sudo chown -R $(whoami) $(pwd)
+
 export CC=$(which gcc)
 export CXX=$(which g++)
 export INSTALL_DIR="$PWD/greenplum-db-devel/"
