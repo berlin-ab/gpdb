@@ -14,7 +14,8 @@ fetch_and_build_xerces_c() {
 	    cd /tmp/xerces
 	    ./configure CC='ccache gcc' CXX='ccache g++' --disable-network
     )
-    make install -j 4 -s -C /tmp/xerces
+    make -j 4 -s -C /tmp/xerces
+    sudo make install -C /tmp/xerces
 }
 
 fetch_and_build_orca() {
@@ -28,7 +29,8 @@ fetch_and_build_orca() {
     wget -O - "${orca_code_url}" | tar zx --strip-components=1 -C /tmp/orca
 
     cmake -GNinja -H/tmp/orca -B/tmp/orca/build
-    ninja install -C /tmp/orca/build
+    ninja -C /tmp/orca/build
+    sudo ninja install -C /tmp/orca/build
 }
 
 fetch_and_build_xerces_c
