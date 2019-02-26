@@ -8,5 +8,5 @@ params:
   # default to empty, override from pipeline
   CONFIGURE_FLAGS:
 caches:
-  - path: .ccache
+  - path: gpdb_src/.ccache
   

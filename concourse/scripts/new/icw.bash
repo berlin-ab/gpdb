@@ -5,6 +5,7 @@ set -o errexit
 sudo chown -R $(whoami) $(pwd)
 
 export INSTALL_DIR="$PWD/greenplum-db-devel/"
+export CCACHE_DIR="$PWD/.ccache"
 
 ./configure CC='ccache gcc' \
 	    CXX='ccache g++' \
