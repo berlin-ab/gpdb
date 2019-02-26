@@ -50,20 +50,20 @@ tasks:
     file: gpdb_src/concourse/tasks/new/icw.yml
     timeout: 3h
     on_failure: *pr_failure
-    
+        
   - &icw_orca
     <<: *icw
     params:
-      CONFIGURE_FLAGS: --enable-orca
+      CONFIGURE_FLAGS: --enable-orca --without-zstd
     
   - &icw_planner
     <<: *icw
     params:
-      CONFIGURE_FLAGS: --disable-orca
+      CONFIGURE_FLAGS: --disable-orca --without-zstd
 
   
 jobs:
-  - name: compile_and_test_gpdb
+  - name: compile_and_test_gpdb_with_planner
     public: true
     max_in_flight: 10
     plan:
@@ -71,13 +71,34 @@ jobs:
       - get: gpdb_src
         trigger: true
         version: every
+        on_failure: *pr_failure
       - get: image
         resource: ubuntu-gpdb-dev-16
+        on_failure: *pr_failure
+
+    - *pr_pending
+
+    - aggregate:
+        - *icw_planner
+
+    - *pr_success
+    
+  - name: compile_and_test_gpdb_with_gporca
+    public: true
+    max_in_flight: 10
+    plan:
+    - aggregate:
+      - get: gpdb_src
+        trigger: true
+        version: every
+        on_failure: *pr_failure
+      - get: image
+        resource: ubuntu-gpdb-dev-16
+        on_failure: *pr_failure
 
     - *pr_pending
 
     - aggregate:
         - *icw_orca
-        - *icw_planner
 
     - *pr_success

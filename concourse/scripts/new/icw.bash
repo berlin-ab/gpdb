@@ -4,13 +4,14 @@ export CC=$(which gcc)
 export CXX=$(which g++)
 export INSTALL_DIR="$PWD/greenplum-db-devel/"
 
-./configure --with-perl \
+./configure --prefix=${INSTALL_DIR} \
+	    --with-perl \
 	    --with-python \
 	    --with-libxml \
-	    --disable-gpfdist \
-	    --enable-mapreduce \
 	    --with-zstd \
-	    --prefix=${INSTALL_DIR} ${CONFIGURE_FLAGS};
+	    --enable-mapreduce \
+	    --disable-gpfdist \
+	    ${CONFIGURE_FLAGS};
 
 make -j4 -s
 make -s install
