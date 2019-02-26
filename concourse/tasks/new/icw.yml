@@ -1,0 +1,7 @@
+platform: linux
+inputs:
+  - name: gpdb_src
+run:
+  path: ./concourse/scripts/new/icw.bash
+  dir: gpdb_src
+  
