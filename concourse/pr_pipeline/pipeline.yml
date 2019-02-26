@@ -9,7 +9,7 @@ resources:
     type: pull-request
     source:
       repository: berlin-ab/gpdb
-      access_token: {{gpdb-git-access-token}}
+      access_token: {{berlin-gpdb-git-access-token}}
       ignore_paths:
       - gpdb-doc/*
       - README*
@@ -57,18 +57,20 @@ tasks:
   - &icw
     task: icw
     image: image
-    file: gpdb_src/concourse/tasks/new/icw.yml
+    file: gpdb_src/concourse/pr_pipeline/task.yml
     timeout: 3h
     on_failure: *pr_failure
         
   - &icw_orca
     <<: *icw
     params:
+      MAKE_TASK: installcheck-world
       CONFIGURE_FLAGS: --enable-orca --without-zstd
     
   - &icw_planner
     <<: *icw
     params:
+      MAKE_TASK: installcheck-world
       CONFIGURE_FLAGS: --disable-orca --without-zstd
   
 jobs:

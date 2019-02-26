@@ -64,6 +64,6 @@ make create-demo-cluster;
 echo "Source the demo env"
 source ./gpAux/gpdemo/gpdemo-env.sh
 
-echo "Run installcheck-world"
-make installcheck-world;
+echo "Run $MAKE_TASK"
+make $MAKE_TASK;
 

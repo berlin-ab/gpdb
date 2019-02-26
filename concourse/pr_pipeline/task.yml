@@ -2,7 +2,7 @@ platform: linux
 inputs:
   - name: gpdb_src
 run:
-  path: ./concourse/scripts/new/icw.bash
+  path: ./concourse/pr_pipeline/runner.bash
   dir: gpdb_src
 params:
   # default to empty, override from pipeline
