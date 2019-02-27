@@ -70,6 +70,7 @@ _main() {
     fetch_and_build_orca
     install_gpdb
     /start-sshd.bash
+    install_demo_cluster
     
     make $MAKE_TASK;    
 }
