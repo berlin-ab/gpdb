@@ -2,6 +2,7 @@
 
 set -o errexit
 
+
 export GPDB_INSTALL_DIR="$PWD/greenplum-db-devel/"
 export CCACHE_DIR="$PWD/.ccache"
 
@@ -37,6 +38,7 @@ fetch_and_build_orca() {
     cmake -GNinja -H/tmp/orca -B/tmp/orca/build
     ninja -C /tmp/orca/build
     sudo ninja install -C /tmp/orca/build
+    sudo ldconfig
 }
 
 
