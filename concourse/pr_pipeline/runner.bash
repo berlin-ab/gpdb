@@ -50,6 +50,7 @@ install_gpdb() {
 		--with-python \
 		--with-libxml \
 		--with-zstd \
+		--with-gssapi \
 		--enable-mapreduce \
 		${CONFIGURE_FLAGS};
 
