@@ -102,7 +102,7 @@ tasks:
       
         
 jobs:
-  - name: compile_and_test_gpdb_with_planner
+  - name: compile_and_test_gpdb
     public: true
     max_in_flight: 10
     plan:
@@ -114,23 +114,9 @@ jobs:
 
     - aggregate:
         - *icw_planner
-        - *icw_planner_without_asserts
-        - *gpload
-
-    - *pr_success
-    
-  - name: compile_and_test_gpdb_with_gporca
-    public: true
-    max_in_flight: 10
-    plan:
-    - aggregate:
-      - *fetch_pr
-      - *fetch_image
-
-    - *pr_pending
-
-    - aggregate:
         - *icw_orca
+        - *icw_planner_without_asserts
         - *icw_orca_without_asserts
+        - *gpload
 
     - *pr_success
