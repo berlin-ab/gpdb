@@ -52,7 +52,7 @@ anchors:
     get: image
     resource: docker-image
     on_failure: *pr_failure
-      
+
 tasks:
   - &task
     image: image
@@ -97,9 +97,30 @@ tasks:
     task: gpload
     params:
       MAKE_TASK: -C gpMgmt/bin installcheck
-      CONFIGURE_FLAGS: --without-zstd --disable-cassert
+
+  - &test_regress
+    <<: *task
+    task: test_regress
+    params:
+      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
-      
+      MAKE_TASK: -C src/test/regress installcheck
+
+  - &test_isolation2
+    <<: *task
+    task: test_isolation2
+    params:
+      CONFIGURE_FLAGS: --without-zstd
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/isolation2 installcheck
+
+  - &test_src_bin
+    <<: *task
+    task: test_src_bin
+    params:
+      CONFIGURE_FLAGS: --without-zstd
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -c src/bin installcheck
         
 jobs:
   - name: compile_and_test_gpdb
@@ -118,5 +139,8 @@ jobs:
         - *icw_planner_without_asserts
         - *icw_orca_without_asserts
         - *gpload
+        - *test_regress
+        - *test_isolation2
+        - *test_src_bin
 
     - *pr_success
