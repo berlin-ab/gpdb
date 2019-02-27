@@ -51,6 +51,7 @@ install_gpdb() {
 		--with-libxml \
 		--with-zstd \
 		--with-gssapi \
+		--enable-orca \
 		--enable-mapreduce \
 		${CONFIGURE_FLAGS};
 
@@ -75,7 +76,7 @@ _main() {
     /start-sshd.bash
     install_demo_cluster
     
-    make $MAKE_TASK;    
+    PGOPTIONS="${PGOPTIONS}" make "${MAKE_TASK}";
 }
 
 
