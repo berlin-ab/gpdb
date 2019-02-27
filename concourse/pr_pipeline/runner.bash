@@ -51,6 +51,7 @@ install_gpdb() {
 		--with-libxml \
 		--with-zstd \
 		--with-gssapi \
+		--enable-cassert \
 		--enable-orca \
 		--enable-mapreduce \
 		${CONFIGURE_FLAGS};

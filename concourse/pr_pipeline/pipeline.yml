@@ -54,26 +54,44 @@ anchors:
     on_failure: *pr_failure
       
 tasks:
-  - &icw
-    task: icw
+  - &task
     image: image
     file: gpdb_src/concourse/pr_pipeline/task.yml
     timeout: 3h
     on_failure: *pr_failure
         
   - &icw_orca
-    <<: *icw
+    <<: *task
+    task: icw_orca
     params:
       MAKE_TASK: installcheck-world
       CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=on'
     
   - &icw_planner
-    <<: *icw
+    <<: *task
+    task: icw_planner
     params:
       MAKE_TASK: installcheck-world
       CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
+
+  - &icw_orca_without_asserts
+    <<: *task
+    task: icw_orca_without_asserts
+    params:
+      MAKE_TASK: installcheck-world
+      CONFIGURE_FLAGS: --without-zstd --disable-cassert
+      PGOPTIONS: '-c optimizer=on'
+
+  - &icw_planner_without_asserts
+    <<: *task
+    task: icw_planner_without_asserts
+    params:
+      MAKE_TASK: installcheck-world
+      CONFIGURE_FLAGS: --without-zstd --disable-cassert
+      PGOPTIONS: '-c optimizer=off'
+      
         
 jobs:
   - name: compile_and_test_gpdb_with_planner
@@ -88,6 +106,7 @@ jobs:
 
     - aggregate:
         - *icw_planner
+        - *icw_planner_without_asserts
 
     - *pr_success
     
@@ -103,5 +122,6 @@ jobs:
 
     - aggregate:
         - *icw_orca
+        - *icw_orca_without_asserts
 
     - *pr_success
