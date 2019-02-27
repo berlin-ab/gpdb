@@ -77,7 +77,7 @@ _main() {
     /start-sshd.bash
     install_demo_cluster
     
-    PGOPTIONS="${PGOPTIONS}" make "${MAKE_TASK}";
+    PGOPTIONS="${PGOPTIONS}" make ${MAKE_TASK};
 }
 
 

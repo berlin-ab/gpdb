@@ -91,6 +91,14 @@ tasks:
       MAKE_TASK: installcheck-world
       CONFIGURE_FLAGS: --without-zstd --disable-cassert
       PGOPTIONS: '-c optimizer=off'
+
+  - &gpload
+    <<: *task
+    task: gpload
+    params:
+      MAKE_TASK: -C gpMgmt/bin installcheck
+      CONFIGURE_FLAGS: --without-zstd --disable-cassert
+      PGOPTIONS: '-c optimizer=off'
       
         
 jobs:
@@ -107,6 +115,7 @@ jobs:
     - aggregate:
         - *icw_planner
         - *icw_planner_without_asserts
+        - *gpload
 
     - *pr_success
     
