@@ -6,6 +6,11 @@ set -o errexit
 export GPDB_INSTALL_DIR="$PWD/greenplum-db-devel/"
 export CCACHE_DIR="$PWD/.ccache"
 
+#
+# FIXME: entered here to make gpload tests pass
+#
+export LOGNAME=$(whoami)
+
 
 regain_ownership_of_working_directory() {
     sudo chown -R $(whoami) $(pwd)
