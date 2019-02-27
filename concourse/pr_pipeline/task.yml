@@ -8,6 +8,7 @@ params:
   # default params to empty, override from pipeline
   CONFIGURE_FLAGS:
   MAKE_TASK:
+  PGOPTIONS:
 caches:
   - path: gpdb_src/.ccache
   
