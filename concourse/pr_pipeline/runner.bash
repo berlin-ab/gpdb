@@ -43,7 +43,6 @@ fetch_and_build_orca
 	    --with-libxml \
 	    --with-zstd \
 	    --enable-mapreduce \
-	    --disable-gpfdist \
 	    ${CONFIGURE_FLAGS};
 
 echo "Make"
