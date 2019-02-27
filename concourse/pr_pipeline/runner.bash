@@ -2,25 +2,31 @@
 
 set -o errexit
 
-sudo chown -R $(whoami) $(pwd)
-
-export INSTALL_DIR="$PWD/greenplum-db-devel/"
+export GPDB_INSTALL_DIR="$PWD/greenplum-db-devel/"
 export CCACHE_DIR="$PWD/.ccache"
+
+
+regain_ownership_of_working_directory() {
+    sudo chown -R $(whoami) $(pwd)
+}
+
 
 fetch_and_build_xerces_c() {
     git clone https://github.com/greenplum-db/gp-xerces /tmp/xerces
     (
 	    set -e
 	    cd /tmp/xerces
-	    ./configure CC='ccache gcc' CXX='ccache g++' --disable-network
+	    ./configure CC='ccache gcc' \
+			CXX='ccache g++' \
+			--disable-network
+
     )
     make -j 4 -s -C /tmp/xerces
     sudo make install -C /tmp/xerces
 }
 
+
 fetch_and_build_orca() {
-    fetch_and_build_xerces_c
-    
     local orca_code_url
     orca_code_url=$(
 	sed -E -n -e '/gporca/s,.*https://github.com/greenplum-db/gporca/releases/download/v(([[:digit:]]|\.)+)/bin_orca_centos5_release.tar.gz.*,https://github.com/greenplum-db/gporca/archive/v\1.tar.gz,p' <gpAux/releng/releng.mk
@@ -33,36 +39,40 @@ fetch_and_build_orca() {
     sudo ninja install -C /tmp/orca/build
 }
 
-fetch_and_build_orca
 
-./configure CC='ccache gcc' \
-	    CXX='ccache g++' \
-	    --prefix=${INSTALL_DIR} \
-	    --with-perl \
-	    --with-python \
-	    --with-libxml \
-	    --with-zstd \
-	    --enable-mapreduce \
-	    ${CONFIGURE_FLAGS};
+install_gpdb() {
+    ./configure CC='ccache gcc' \
+		CXX='ccache g++' \
+		--prefix=${GPDB_INSTALL_DIR} \
+		--with-perl \
+		--with-python \
+		--with-libxml \
+		--with-zstd \
+		--enable-mapreduce \
+		${CONFIGURE_FLAGS};
 
-echo "Make"
-make -j4 -s
+    make -j4 -s
 
-echo "Make install"
-make -s install
+    make -s install
+}
 
-echo "Source greenplum path"
-source ./greenplum-db-devel/greenplum_path.sh
 
-echo "Start ssh daemon"
-/start-sshd.bash
+install_demo_cluster() {
+    source ./greenplum-db-devel/greenplum_path.sh
+    make create-demo-cluster;
+    source ./gpAux/gpdemo/gpdemo-env.sh
+}
 
-echo "Create the demo cluster"
-make create-demo-cluster;
 
-echo "Source the demo env"
-source ./gpAux/gpdemo/gpdemo-env.sh
+_main() {
+    regain_ownership_of_working_directory
+    fetch_and_build_xerces_c
+    fetch_and_build_orca
+    install_gpdb
+    /start-sshd.bash
+    
+    make $MAKE_TASK;    
+}
 
-echo "Run $MAKE_TASK"
-make $MAKE_TASK;
 
+_main "$@"
