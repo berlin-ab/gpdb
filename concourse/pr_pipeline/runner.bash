@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 set -o errexit
 
 
@@ -26,7 +27,7 @@ install_xerces() {
   		  CXX='ccache g++' \
 		  --disable-network
     )
-    make -j 4 -s -C /tmp/xerces
+    make_command -s -C /tmp/xerces
     sudo make install -C /tmp/xerces
 }
 
@@ -51,8 +52,23 @@ fetch_orca() {
 }
 
 
+get_number_of_cores() {
+    getconf _NPROCESSORS_ONLN
+}
+
+
+make_command() {
+    local number_of_cores=$(get_number_of_cores)
+    local target_load_average=$((number_of_cores * 2))
+
+    make --jobs $number_of_cores \
+	 --load-average $target_load_average \
+	 "$@"
+}
+
+
 install_orca() {
-    cmake -GNinja -H/tmp/orca -B/tmp/orca/build
+    cmake -G Ninja -H/tmp/orca -B/tmp/orca/build
     ninja -C /tmp/orca/build
     sudo ninja install -C /tmp/orca/build
 }
@@ -80,9 +96,8 @@ install_gpdb() {
 		--enable-mapreduce \
 		${CONFIGURE_FLAGS};
 
-    make -j4 -s
-
-    make -s install
+    make_command -s
+    make_command install -s
 }
 
 
