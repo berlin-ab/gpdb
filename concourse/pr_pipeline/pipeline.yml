@@ -170,7 +170,7 @@ tasks:
     task: test_ssl
     params:
       PGOPTIONS: '-c optimizer=off'
-      MAKE_TASK: -C src/test/ssl installcheck
+      MAKE_TASK: -C src/test/ssl check
       
   - &test_pl
     <<: *task
