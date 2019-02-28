@@ -102,6 +102,56 @@ tasks:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C gpcontrib installcheck
 
+  - &test_perl
+    <<: *task
+    task: test_perl
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/perl installcheck
+
+  - &test_isolation
+    <<: *task
+    task: test_isolation
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/isolation installcheck
+
+  - &test_fsync
+    <<: *task
+    task: test_fsync
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/fsync installcheck
+
+  - &test_walrep
+    <<: *task
+    task: test_walrep
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/walrep installcheck
+
+  - &test_heap_checksum
+    <<: *task
+    task: test_heap_checksum
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/heap_checksum installcheck
+
+  - &test_kerberos
+    <<: *task
+    task: test_kerberos
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/kerberos installcheck
+
+  - &test_modules
+    <<: *task
+    task: test_modules
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/modules installcheck
+
+
 jobs:
   - name: compile_and_test_gpdb
     public: true
@@ -114,8 +164,17 @@ jobs:
     - *pr_pending
 
     - aggregate:
+        # src/test
         - *test_regress
         - *test_isolation2
+        - *test_perl
+        - *test_isolation
+        - *test_fsync
+        - *test_walrep
+        - *test_heap_checksum
+        - *test_kerberos
+        - *test_modules
+
         - *test_src_bin
         - *test_unit
         - *test_gpmgmt
