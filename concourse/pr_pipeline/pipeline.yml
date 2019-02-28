@@ -60,12 +60,6 @@ tasks:
     timeout: 3h
     on_failure: *pr_failure
         
-  - &test_gpload
-    <<: *task
-    task: test_gpload
-    params:
-      MAKE_TASK: -C gpMgmt/bin installcheck
-
   - &test_regress
     <<: *task
     task: test_regress
@@ -120,7 +114,6 @@ jobs:
     - *pr_pending
 
     - aggregate:
-        - *test_gpload
         - *test_regress
         - *test_isolation2
         - *test_src_bin
