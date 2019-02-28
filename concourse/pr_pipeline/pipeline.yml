@@ -76,14 +76,14 @@ tasks:
 
   - &test_regress_with_orca
     <<: *task
-    task: test_regress
+    task: test_regress_with_orca
     params:
       PGOPTIONS: '-c optimizer=on'
       MAKE_TASK: -C src/test/regress installcheck
 
   - &test_isolation2_with_orca
     <<: *task
-    task: test_isolation2
+    task: test_isolation2_with_orca
     params:
       PGOPTIONS: '-c optimizer=on'
       MAKE_TASK: -C src/test/isolation2 installcheck
