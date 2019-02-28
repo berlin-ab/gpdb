@@ -12,6 +12,11 @@ export CCACHE_DIR="$PWD/.ccache"
 export LOGNAME=$(whoami)
 
 
+display_ccache_statistics() {
+    ccache -s
+}
+
+
 regain_ownership_of_working_directory() {
     sudo chown -R $(whoami) $(pwd)
 }
@@ -77,9 +82,15 @@ install_demo_cluster() {
 
 _main() {
     regain_ownership_of_working_directory
+
+    display_ccache_statistics
+    
     fetch_and_build_xerces_c
     fetch_and_build_orca
     install_gpdb
+
+    display_ccache_statistics
+    
     /start-sshd.bash
     install_demo_cluster
     
