@@ -74,22 +74,6 @@ tasks:
       MAKE_TASK: installcheck-world
       PGOPTIONS: '-c optimizer=off'
 
-  - &icw_orca_without_asserts
-    <<: *task
-    task: icw_orca_without_asserts
-    params:
-      MAKE_TASK: installcheck-world
-      CONFIGURE_FLAGS: --disable-cassert
-      PGOPTIONS: '-c optimizer=on'
-
-  - &icw_planner_without_asserts
-    <<: *task
-    task: icw_planner_without_asserts
-    params:
-      MAKE_TASK: installcheck-world
-      CONFIGURE_FLAGS: --disable-cassert
-      PGOPTIONS: '-c optimizer=off'
-
   - &test_gpload
     <<: *task
     task: test_gpload
@@ -152,8 +136,6 @@ jobs:
     - aggregate:
         - *icw_planner
         - *icw_orca
-        - *icw_planner_without_asserts
-        - *icw_orca_without_asserts
         - *test_gpload
         - *test_regress
         - *test_isolation2
