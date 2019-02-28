@@ -7,7 +7,9 @@ REGRESS = exttab1 custom_format gpfdist2
 
 ifeq ($(enable_gpfdist),yes)
 ifeq ($(with_openssl),yes)
+ifeq (no, yes) # intentionally disable this test.
 	REGRESS += gpfdist_ssl
+endif
 endif
 endif
 
