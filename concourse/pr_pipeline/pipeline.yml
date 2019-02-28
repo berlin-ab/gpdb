@@ -65,7 +65,6 @@ tasks:
     task: icw_orca
     params:
       MAKE_TASK: installcheck-world
-      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=on'
     
   - &icw_planner
@@ -73,7 +72,6 @@ tasks:
     task: icw_planner
     params:
       MAKE_TASK: installcheck-world
-      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
 
   - &icw_orca_without_asserts
@@ -81,7 +79,7 @@ tasks:
     task: icw_orca_without_asserts
     params:
       MAKE_TASK: installcheck-world
-      CONFIGURE_FLAGS: --without-zstd --disable-cassert
+      CONFIGURE_FLAGS: --disable-cassert
       PGOPTIONS: '-c optimizer=on'
 
   - &icw_planner_without_asserts
@@ -89,7 +87,7 @@ tasks:
     task: icw_planner_without_asserts
     params:
       MAKE_TASK: installcheck-world
-      CONFIGURE_FLAGS: --without-zstd --disable-cassert
+      CONFIGURE_FLAGS: --disable-cassert
       PGOPTIONS: '-c optimizer=off'
 
   - &test_gpload
@@ -102,7 +100,6 @@ tasks:
     <<: *task
     task: test_regress
     params:
-      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/regress installcheck
 
@@ -110,7 +107,6 @@ tasks:
     <<: *task
     task: test_isolation2
     params:
-      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/isolation2 installcheck
 
@@ -118,7 +114,6 @@ tasks:
     <<: *task
     task: test_src_bin
     params:
-      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/bin installcheck
 
@@ -126,7 +121,6 @@ tasks:
     <<: *task
     task: test_unit
     params:
-      CONFIGURE_FLAGS: --without-zstd
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: unittest-check
         
