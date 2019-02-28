@@ -151,6 +151,61 @@ tasks:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/modules installcheck
 
+  - &test_pl
+    <<: *task
+    task: test_pl
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/pl installcheck
+  
+  - &test_interfaces_gppc
+    <<: *task
+    task: test_interfaces_gppc
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/interfaces/gppc installcheck
+  
+  - &test_contrib_formatter_fixedwidth
+    <<: *task
+    task: test_contrib_formatter_fixedwidth
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C contrib/formatter_fixedwidth installcheck
+  
+  - &test_contrib_extprotocol
+    <<: *task
+    task: test_contrib_extprotocol
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C contrib/extprotocol installcheck
+      
+  - &test_contrib_dblink
+    <<: *task
+    task: test_contrib_dblink
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C contrib/dblink installcheck
+      
+  - &test_contrib_indexscan
+    <<: *task
+    task: test_contrib_indexscan
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C contrib/indexscan installcheck
+      
+  - &test_contrib_hstore
+    <<: *task
+    task: test_contrib_hstore
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C contrib/hstore installcheck
+
+  - &test_contrib_pgcrypto
+    <<: *task
+    task: test_contrib_pgcrypto
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C contrib/pgcrypto installcheck
 
 jobs:
   - name: compile_and_test_gpdb
@@ -164,20 +219,26 @@ jobs:
     - *pr_pending
 
     - aggregate:
-        # src/test
-        - *test_regress
-        - *test_isolation2
-        - *test_perl
-        - *test_isolation
-        - *test_fsync
-        - *test_walrep
-        - *test_heap_checksum
-        - *test_kerberos
-        - *test_modules
-
-        - *test_src_bin
-        - *test_unit
-        - *test_gpmgmt
-        - *test_gpcontrib
+      - *test_regress
+      - *test_isolation2
+      - *test_perl
+      - *test_isolation
+      - *test_fsync
+      - *test_walrep
+      - *test_heap_checksum
+      - *test_kerberos
+      - *test_modules
+      - *test_src_bin
+      - *test_unit
+      - *test_gpmgmt
+      - *test_gpcontrib
+      - *test_pl
+      - *test_interfaces_gppc
+      - *test_contrib_formatter_fixedwidth
+      - *test_contrib_extprotocol
+      - *test_contrib_dblink
+      - *test_contrib_indexscan
+      - *test_contrib_hstore
+      - *test_contrib_pgcrypto
 
     - *pr_success
