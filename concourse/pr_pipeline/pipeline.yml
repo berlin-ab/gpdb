@@ -165,6 +165,13 @@ tasks:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/modules installcheck
 
+  - &test_ssl
+    <<: *task
+    task: test_ssl
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C src/test/ssl installcheck
+      
   - &test_pl
     <<: *task
     task: test_pl
@@ -244,6 +251,7 @@ jobs:
       - *test_heap_checksum
       - *test_kerberos
       - *test_modules
+      - *test_ssl
       - *test_src_bin
       - *test_unit
       - *test_gpmgmt
