@@ -123,6 +123,20 @@ tasks:
     params:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: unittest-check
+
+  - &test_gpmgmt
+    <<: *task
+    task: test_gpmgmt
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C gpMgmt/bin installcheck
+
+  - &test_gpcontrib
+    <<: *task
+    task: test_gpcontrib
+    params:
+      PGOPTIONS: '-c optimizer=off'
+      MAKE_TASK: -C gpcontrib installcheck
         
 jobs:
   - name: compile_and_test_gpdb
@@ -145,5 +159,7 @@ jobs:
         - *test_isolation2
         - *test_src_bin
         - *test_unit
+        - *test_gpmgmt
+        - *test_gpcontrib
 
     - *pr_success
