@@ -94,6 +94,7 @@ install_gpdb() {
 		--enable-cassert \
 		--enable-orca \
 		--enable-mapreduce \
+		--enable-tap-tests \
 		${CONFIGURE_FLAGS};
 
     make_command -s
