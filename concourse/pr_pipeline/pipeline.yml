@@ -60,20 +60,6 @@ tasks:
     timeout: 3h
     on_failure: *pr_failure
         
-  - &icw_orca
-    <<: *task
-    task: icw_orca
-    params:
-      MAKE_TASK: installcheck-world
-      PGOPTIONS: '-c optimizer=on'
-    
-  - &icw_planner
-    <<: *task
-    task: icw_planner
-    params:
-      MAKE_TASK: installcheck-world
-      PGOPTIONS: '-c optimizer=off'
-
   - &test_gpload
     <<: *task
     task: test_gpload
@@ -134,8 +120,6 @@ jobs:
     - *pr_pending
 
     - aggregate:
-        - *icw_planner
-        - *icw_orca
         - *test_gpload
         - *test_regress
         - *test_isolation2
