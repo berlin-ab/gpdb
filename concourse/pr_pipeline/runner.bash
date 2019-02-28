@@ -56,6 +56,7 @@ install_gpdb() {
 		--with-libxml \
 		--with-zstd \
 		--with-gssapi \
+		--with-openssl \
 		--enable-cassert \
 		--enable-orca \
 		--enable-mapreduce \

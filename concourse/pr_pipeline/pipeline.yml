@@ -137,7 +137,7 @@ tasks:
     params:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C gpcontrib installcheck
-        
+
 jobs:
   - name: compile_and_test_gpdb
     public: true
