@@ -74,6 +74,20 @@ tasks:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/isolation2 installcheck
 
+  - &test_regress_with_orca
+    <<: *task
+    task: test_regress
+    params:
+      PGOPTIONS: '-c optimizer=on'
+      MAKE_TASK: -C src/test/regress installcheck
+
+  - &test_isolation2_with_orca
+    <<: *task
+    task: test_isolation2
+    params:
+      PGOPTIONS: '-c optimizer=on'
+      MAKE_TASK: -C src/test/isolation2 installcheck
+      
   - &test_src_bin
     <<: *task
     task: test_src_bin
@@ -220,7 +234,9 @@ jobs:
 
     - aggregate:
       - *test_regress
+      - *test_regress_with_orca
       - *test_isolation2
+      - *test_isolation2_with_orca
       - *test_perl
       - *test_isolation
       - *test_fsync
