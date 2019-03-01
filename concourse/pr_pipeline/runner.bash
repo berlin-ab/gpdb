@@ -59,7 +59,7 @@ get_number_of_cores() {
 
 make_command() {
     local number_of_cores=$(get_number_of_cores)
-    local target_load_average=$((number_of_cores * 2))
+    local target_load_average=$((number_of_cores * 16))
 
     make --jobs $number_of_cores \
 	 --load-average $target_load_average \
