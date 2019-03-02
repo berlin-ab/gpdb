@@ -59,7 +59,7 @@ tasks:
     image: image
     tags: [pr-pipeline]
     file: gpdb_src/concourse/pr_pipeline/task.yml
-    timeout: 3h
+    timeout: 1h
     on_failure: *pr_failure
         
   - &test_regress
