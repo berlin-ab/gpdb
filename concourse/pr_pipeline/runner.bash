@@ -59,7 +59,7 @@ get_number_of_cores() {
 
 make_command() {
     local number_of_cores=$(get_number_of_cores)
-    local target_load_average=$((number_of_cores * 16))
+    local target_load_average=$((number_of_cores * 4))
 
     make --jobs $number_of_cores \
 	 --load-average $target_load_average \
@@ -71,7 +71,7 @@ install_orca() {
     cmake -G Ninja -H/tmp/orca -B/tmp/orca/build
     local ncpu
     ncpu=$(get_number_of_cores)
-    ninja -l "$((16 * ncpu))" -C /tmp/orca/build
+    ninja -l "$((4 * ncpu))" -C /tmp/orca/build
     sudo ninja install -C /tmp/orca/build
 }
 
