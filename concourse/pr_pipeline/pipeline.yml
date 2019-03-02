@@ -47,6 +47,7 @@ anchors:
     trigger: true
     version: every
     on_failure: *pr_failure
+    tags: [pr-pipeline]
 
   - &fetch_image
     get: image
