@@ -52,6 +52,7 @@ anchors:
     get: image
     resource: docker-image
     on_failure: *pr_failure
+    tags: [pr-pipeline]
 
 tasks:
   - &task
