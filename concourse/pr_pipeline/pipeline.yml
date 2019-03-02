@@ -46,13 +46,11 @@ anchors:
     get: gpdb_src
     trigger: true
     version: every
-    on_failure: *pr_failure
     tags: [pr-pipeline]
 
   - &fetch_image
     get: image
     resource: docker-image
-    on_failure: *pr_failure
     tags: [pr-pipeline]
 
 tasks:
@@ -61,8 +59,7 @@ tasks:
     tags: [pr-pipeline]
     file: gpdb_src/concourse/pr_pipeline/task.yml
     timeout: 1h
-    on_failure: *pr_failure
-        
+
   - &test_regress
     <<: *task
     task: test_regress
@@ -239,8 +236,8 @@ jobs:
     - aggregate:
       - *fetch_pr
       - *fetch_image
-
-    - *pr_pending
+      on_success: *pr_pending
+      on_failure: *pr_failure
 
     - aggregate:
       - *test_regress
@@ -267,5 +264,7 @@ jobs:
       - *test_contrib_indexscan
       - *test_contrib_hstore
       - *test_contrib_pgcrypto
+
+      on_failure: *pr_failure
 
     - *pr_success
