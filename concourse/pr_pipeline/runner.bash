@@ -69,7 +69,9 @@ make_command() {
 
 install_orca() {
     cmake -G Ninja -H/tmp/orca -B/tmp/orca/build
-    ninja -C /tmp/orca/build
+    local ncpu
+    ncpu=$(get_number_of_cores)
+    ninja -l "$((16 * ncpu))" -C /tmp/orca/build
     sudo ninja install -C /tmp/orca/build
 }
 
