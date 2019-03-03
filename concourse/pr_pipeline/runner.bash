@@ -125,16 +125,18 @@ _main() {
     export CCACHE_DIR="$PWD/.ccache"
     # FIXME: entered here to make gpload tests pass
     export LOGNAME=$(whoami)
-    
-    time regain_ownership_of_working_directory
-    time display_ccache_statistics
-    time fetch_and_build_xerces_c
-    time fetch_and_build_orca
-    time install_gpdb
-    time display_ccache_statistics
-    time start_sshd
-    time install_demo_cluster
-    time run_make_task
+
+    time (
+	time regain_ownership_of_working_directory
+	time display_ccache_statistics
+	time fetch_and_build_xerces_c
+	time fetch_and_build_orca
+	time install_gpdb
+	time display_ccache_statistics
+	time start_sshd
+	time install_demo_cluster
+	time run_make_task
+    )
 }
 
 
