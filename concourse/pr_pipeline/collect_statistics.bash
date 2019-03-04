@@ -17,7 +17,7 @@ collect_statistics() {
     
     echo "";
     echo "vmstat: ";
-    vmstat --unit M $vmstat_collection_period_in_seconds $vmstat_print_n_times;
+    vmstat --wide --unit M $vmstat_collection_period_in_seconds $vmstat_print_n_times;
     
     echo "";
     echo "uptime: ";
