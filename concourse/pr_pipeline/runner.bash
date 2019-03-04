@@ -127,14 +127,31 @@ _main() {
     export LOGNAME=$(whoami)
 
     time (
+	echo "Regaining ownership of working directory."
 	time regain_ownership_of_working_directory
+
+	echo "Display ccache statistics"
 	time display_ccache_statistics
+
+	echo "Install xerces"
 	time fetch_and_build_xerces_c
+
+	echo "Install orca"
 	time fetch_and_build_orca
+
+	echo "Install gpdb"
 	time install_gpdb
+	
+	echo "Display ccache statistics"
 	time display_ccache_statistics
+
+	echo "Start sshd"
 	time start_sshd
+
+	echo "Create a demo cluster"
 	time install_demo_cluster
+
+	echo "Run make task"
 	time run_make_task
     )
 }
