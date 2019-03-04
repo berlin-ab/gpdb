@@ -5,6 +5,9 @@ set -o nounset
 
 
 collect_statistics() {
+    local vmstat_collection_period_in_seconds=5
+    local vmstat_print_n_times=1;
+    
     echo "nproc: ";
     nproc;
 
@@ -14,7 +17,7 @@ collect_statistics() {
     
     echo "";
     echo "vmstat: ";
-    vmstat --unit M;
+    vmstat --unit M $vmstat_collection_period_in_seconds $vmstat_print_n_times;
     
     echo "";
     echo "uptime: ";
