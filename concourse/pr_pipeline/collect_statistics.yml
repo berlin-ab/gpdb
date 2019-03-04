@@ -1,0 +1,11 @@
+platform: linux
+inputs:
+  - name: gpdb_src
+run:
+  path: ./concourse/pr_pipeline/collect_statistics.bash
+  dir: gpdb_src
+params:
+  # to be overridden in pipeline
+  COLLECT_EVERY_N_SECONDS:
+  SECONDS_TO_RUN:
+  

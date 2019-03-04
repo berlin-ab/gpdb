@@ -15,6 +15,7 @@ regain_ownership_of_working_directory() {
 
 
 fetch_xerces() {
+    rm -rf /tmp/xerces
     git clone https://github.com/greenplum-db/gp-xerces /tmp/xerces
 }
 
@@ -46,7 +47,7 @@ get_orca_url() {
 fetch_orca() {
     local orca_code_url
     orca_code_url=$(get_orca_url)
-    mkdir /tmp/orca
+    mkdir -p /tmp/orca
     wget --quiet --output-document - "${orca_code_url}" | \
 	tar zx --strip-components=1 -C /tmp/orca
 }

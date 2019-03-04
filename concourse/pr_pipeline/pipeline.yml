@@ -228,6 +228,14 @@ tasks:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C contrib/pgcrypto installcheck
 
+  - &collect_vm_statistics
+    <<: *task
+    task: collect_vm_staticstics
+    file: gpdb_src/concourse/pr_pipeline/collect_statistics.yml
+    params:
+      COLLECT_EVERY_N_SECONDS: 5
+      SECONDS_TO_RUN: 1800
+
 jobs:
   - name: compile_and_test_gpdb
     public: true
@@ -240,6 +248,7 @@ jobs:
       on_failure: *pr_failure
 
     - aggregate:
+      - *collect_vm_statistics
       - *test_regress
       - *test_regress_with_orca
       - *test_isolation2
@@ -264,7 +273,6 @@ jobs:
       - *test_contrib_indexscan
       - *test_contrib_hstore
       - *test_contrib_pgcrypto
-
       on_failure: *pr_failure
 
     - *pr_success
