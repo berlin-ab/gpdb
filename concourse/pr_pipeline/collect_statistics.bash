@@ -5,8 +5,8 @@ set -o nounset
 
 
 collect_statistics() {
-    local vmstat_collection_period_in_seconds=5
-    local vmstat_print_n_times=1;
+    local vmstat_collection_period_in_seconds=$COLLECT_EVERY_N_SECONDS;
+    local vmstat_print_n_times=2;
     
     echo "nproc: ";
     nproc;
@@ -27,7 +27,6 @@ collect_statistics() {
 
 collect_periodically() {
     while true; do
-	sleep $COLLECT_EVERY_N_SECONDS;
 	collect_statistics
     done;
 }
