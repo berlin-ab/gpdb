@@ -46,12 +46,10 @@ anchors:
     get: gpdb_src
     trigger: true
     version: every
-    tags: [pr-pipeline]
 
   - &fetch_image
     get: image
     resource: docker-image
-    tags: [pr-pipeline]
 
 tasks:
   - &task
@@ -62,7 +60,6 @@ tasks:
   - &collect_vm_statistics
     <<: *task
     task: collect_vm_staticstics
-    tags: [pr-pipeline]
     file: gpdb_src/concourse/pr_pipeline/collect_statistics.yml
     params:
       COLLECT_EVERY_N_SECONDS: 5
@@ -71,7 +68,6 @@ tasks:
   - &test_regress
     <<: *task
     task: test_regress
-    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/regress installcheck
@@ -87,7 +83,6 @@ tasks:
   - &test_regress_with_orca
     <<: *task
     task: test_regress_with_orca
-    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=on'
       MAKE_TASK: -C src/test/regress installcheck
@@ -95,7 +90,6 @@ tasks:
   - &test_isolation2_with_orca
     <<: *task
     task: test_isolation2_with_orca
-    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=on'
       MAKE_TASK: -C src/test/isolation2 installcheck
