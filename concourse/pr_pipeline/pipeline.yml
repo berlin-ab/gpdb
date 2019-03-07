@@ -56,13 +56,22 @@ anchors:
 tasks:
   - &task
     image: image
-    tags: [pr-pipeline]
     file: gpdb_src/concourse/pr_pipeline/task.yml
     timeout: 1h
+    
+  - &collect_vm_statistics
+    <<: *task
+    task: collect_vm_staticstics
+    tags: [pr-pipeline]
+    file: gpdb_src/concourse/pr_pipeline/collect_statistics.yml
+    params:
+      COLLECT_EVERY_N_SECONDS: 5
+      SECONDS_TO_RUN: 1800
 
   - &test_regress
     <<: *task
     task: test_regress
+    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/regress installcheck
@@ -70,6 +79,7 @@ tasks:
   - &test_isolation2
     <<: *task
     task: test_isolation2
+    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C src/test/isolation2 installcheck
@@ -77,6 +87,7 @@ tasks:
   - &test_regress_with_orca
     <<: *task
     task: test_regress_with_orca
+    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=on'
       MAKE_TASK: -C src/test/regress installcheck
@@ -84,6 +95,7 @@ tasks:
   - &test_isolation2_with_orca
     <<: *task
     task: test_isolation2_with_orca
+    tags: [pr-pipeline]
     params:
       PGOPTIONS: '-c optimizer=on'
       MAKE_TASK: -C src/test/isolation2 installcheck
@@ -227,14 +239,6 @@ tasks:
     params:
       PGOPTIONS: '-c optimizer=off'
       MAKE_TASK: -C contrib/pgcrypto installcheck
-
-  - &collect_vm_statistics
-    <<: *task
-    task: collect_vm_staticstics
-    file: gpdb_src/concourse/pr_pipeline/collect_statistics.yml
-    params:
-      COLLECT_EVERY_N_SECONDS: 5
-      SECONDS_TO_RUN: 1800
 
 jobs:
   - name: compile_and_test_gpdb
