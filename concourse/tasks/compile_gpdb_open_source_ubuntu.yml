@@ -5,6 +5,7 @@ inputs:
   - name: gpdb_src
 outputs:
   - name: compiled_bits_ubuntu16
+  - name: gpdb_src_output
 run:
   path: gpdb_src/concourse/scripts/compile_gpdb_open_source_ubuntu.bash
 params:
