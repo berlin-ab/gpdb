@@ -13,4 +13,4 @@ before_install:
   - docker pull pivotaldata/greenplum-server-ubuntu-18
 
 script:
-  - docker run -v ${PWD}:/gpdb_src --workdir=/gpdb_src --rm pivotaldata/greenplum-server-ubuntu-18 ./concourse/pr_pipeline/runner.bash
+  - ./travis/run.sh
