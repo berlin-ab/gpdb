@@ -83,6 +83,7 @@ FtsShmemInit(void)
 		ftsControlLock = shared->ControlLock;
 
 		shared->fts_probe_info.fts_statusVersion = 0;
+		shared->fts_probe_info.lock = NULL;
 		shared->pm_launch_walreceiver = false;
 	}
 }
@@ -99,10 +100,22 @@ ftsUnlock(void)
 	LWLockRelease(ftsControlLock);
 }
 
+static void
+lock_fts_probe_info() {
+	LWLockAcquire(ftsProbeInfo->lock, LW_EXCLUSIVE);
+}
+
+static void
+unlock_fts_probe_info() {
+	LWLockRelease(ftsProbeInfo->lock);
+}
+
 void
 FtsNotifyProber(void)
 {
 	Assert(Gp_role == GP_ROLE_DISPATCH);
+	lock_fts_probe_info();
+
 	uint8 probeTick = ftsProbeInfo->probeTick;
 
 	/* signal fts-probe */
@@ -114,6 +127,8 @@ FtsNotifyProber(void)
 		pg_usleep(50000);
 		CHECK_FOR_INTERRUPTS();
 	}
+
+	unlock_fts_probe_info();
 }
 
 /*

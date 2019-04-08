@@ -35,6 +35,7 @@ typedef struct FtsProbeInfo
 	volatile uint8		fts_statusVersion;
 	volatile uint8		probeTick;
 	volatile uint8		fts_status[FTS_MAX_DBS];
+	volatile LWLockId   lock;
 } FtsProbeInfo;
 
 #define FTS_MAX_TRANSIENT_STATE 100
