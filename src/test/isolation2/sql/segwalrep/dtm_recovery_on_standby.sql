@@ -1,6 +1,7 @@
 -- Validate that standby performs DTM recovery upon promotion.
 
 include: helpers/server_helpers.sql;
+create extension gp_inject_fault;
 
 -- Check that are starting with a clean slate, standby must be in sync
 -- with master.
@@ -74,10 +75,22 @@ from gp_segment_configuration where content = -1) distributed by (hostname);
 create or replace function reinitialize_standby()
 returns text as $$
     import subprocess
+    from threading import Timer
+
+    class ReinitializeStandbyTimedOut(RuntimeError):
+    	pass
+
+    def fail_reinitialize_standby():
+  	raise ReinitializeStandbyTimedOut
+    
     rv = plpy.execute("select hostname, datadir, port from standby_config order by role", 2)
     standby = rv[0] # role = 'm'
     master = rv[1] # role = 'p'
+    timeout_in_seconds = 300 # Five minutes in seconds
+    timer = Timer(timeout_in_seconds, fail_reinitialize_standby)
+    
     try:
+	timer.start()
         cmd = 'rm -rf %s.dtm_recovery && cp -R %s %s.dtm_recovery' % (standby['datadir'], standby['datadir'], standby['datadir'])
 	remove_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         cmd = 'gpinitstandby -ar -P %d' % master['port']
@@ -87,6 +100,8 @@ returns text as $$
     except subprocess.CalledProcessError as e:
         plpy.info(e.output)
 	raise
+    finally:
+	timer.cancel()
 
     return remove_output + "\n" + init_output
 $$ language plpythonu;
