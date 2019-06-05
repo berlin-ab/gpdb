@@ -263,6 +263,8 @@ FI_IDENT(CheckpointAfterRedoCalculated, "checkpoint_after_redo_calculated")
 FI_IDENT(HeapInsert, "heap_insert")
 /* inject fault to skip WAL flush on WAL receiver */
 FI_IDENT(WalRecvSkipFlush, "walrecv_skip_flush")
+/* inject fault when creating a tablespace */
+FI_IDENT(OnCreateTablepace, "on_create_tablespace")
 #endif
 
 /*

@@ -99,7 +99,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
 #include "miscadmin.h"
-
+#include "utils/faultinjector.h"
 
 /* GUC variables */
 char	   *default_tablespace = NULL;
@@ -224,6 +224,9 @@ TablespaceCreateDbspace(Oid spcNode, Oid dbNode, bool isRedo)
 Oid
 CreateTableSpace(CreateTableSpaceStmt *stmt)
 {
+
+	SIMPLE_FAULT_INJECTOR(OnCreateTablepace);
+
 #ifdef HAVE_SYMLINK
 	Relation	rel;
 	Datum		values[Natts_pg_tablespace];

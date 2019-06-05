@@ -201,3 +201,20 @@ SELECT COUNT(*) FROM tblspc_otherloc_heap;
 
 DROP TABLE tblspc_otherloc_heap;
 DROP TABLESPACE testspace_otherloc;
+
+
+-- failed attempt to create a tablespace should clean up on rollback
+\! mkdir -p @testtablespace@/valid_tablespace_directory
+
+-- ensure a failure happens on one of the segments 
+-- while creating a tablespace to trigger two-phase commit abort
+create extension gp_inject_fault;
+SELECT gp_inject_fault_infinite('on_create_tablespace', 'error', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 0;
+CREATE TABLESPACE tablespace_for_rollback LOCATION '@testtablespace@/valid_tablespace_directory';
+
+-- remove fault
+SELECT gp_inject_fault_infinite('on_create_tablespace', 'reset', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 0;
+
+-- should succeed
+CREATE TABLESPACE tablespace_for_rollback LOCATION '@testtablespace@/valid_tablespace_directory';
+ 

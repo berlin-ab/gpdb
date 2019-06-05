@@ -367,3 +367,9 @@ SELECT COUNT(*) FROM tblspc_otherloc_heap;
 
 DROP TABLE tblspc_otherloc_heap;
 DROP TABLESPACE testspace_otherloc;
+-- failed attempt to create a tablespace should clean up on rollback
+\! mkdir -p /Users/adamberlin/workspace/gpdb7/src/test/regress/testtablespace/valid_tablespace_directory
+-- should fail
+CREATE TABLESPACE tablespace_for_rollback LOCATION '@testtablespace@/invalid_tablespace_directory';
+-- should succeed
+CREATE TABLESPACE tablespace_for_rollback LOCATION '@testtablespace@/valid_tablespace_directory';
