@@ -31,6 +31,7 @@
 #include "catalog/namespace.h"
 #include "catalog/oid_dispatch.h"
 #include "catalog/storage.h"
+#include "catalog/storage_tablespace.h"
 #include "commands/async.h"
 #include "commands/resgroupcmds.h"
 #include "commands/tablecmds.h"
@@ -1908,6 +1909,7 @@ RecordTransactionAbort(bool isSubXact)
 		SetCurrentTransactionStopTimestamp();
 		xlrec.xact_time = xactStopTimestamp;
 	}
+	xlrec.tablespace_oid_to_abort = smgrGetPendingTablespaceForDeletion();
 	xlrec.nrels = nrels;
 	xlrec.nsubxacts = nchildren;
 	rdata[0].data = (char *) (&xlrec);
@@ -1932,7 +1934,7 @@ RecordTransactionAbort(bool isSubXact)
 		lastrdata = 2;
 	}
 	rdata[lastrdata].next = NULL;
-
+	
 	(void) XLogInsert(RM_XACT_ID, XLOG_XACT_ABORT, rdata);
 
 	/*
@@ -3311,6 +3313,7 @@ AbortTransaction(void)
 							 RESOURCE_RELEASE_AFTER_LOCKS,
 							 false, true);
 		smgrDoPendingDeletes(false);
+		smgrDoPendingTablespaceDeletion();
 
 		AtEOXact_AppendOnly();
 		AtEOXact_GUC(false, 1);
@@ -3801,6 +3804,10 @@ void
 AbortCurrentTransaction(void)
 {
 	TransactionState s = CurrentTransactionState;
+	
+	elog(DEBUG5, "AbortCurrentTransaction for %d in state: %d", 
+		s->transactionId, 
+		s->blockState);
 
 	switch (s->blockState)
 	{
@@ -6363,6 +6370,8 @@ xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 
 	/* Make sure files supposed to be dropped are dropped */
 	DropRelationFiles(xlrec->xnodes, xlrec->nrels, true);
+
+	smgrRedoPendingTablespaceDeletion(xlrec->tablespace_oid_to_abort);
 }
 
 static void
