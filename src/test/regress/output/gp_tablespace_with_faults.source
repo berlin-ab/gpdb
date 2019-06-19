@@ -1,5 +1,6 @@
 -- start_matchignore
 -- m/DETAIL: .*/
+-- m/.*adamberlin.*/
 -- end_matchignore
 -- CREATE TABLESPACE
 create extension if not exists gp_inject_fault;
@@ -69,6 +70,12 @@ create or replace function list_tablespace_catalog() returns table(gp_segment_id
 	select -1 as gp_segment_id, spcname::text, oid from pg_tablespace
 	UNION ALL
 	select gp_segment_id, spcname::text, oid from gp_dist_random('pg_tablespace')
+	order by gp_segment_id, spcname
+$$ language sql;
+create or replace function list_tablespace_catalog_without_oid() returns table(gp_segment_id int, tablespace_name text) as $$
+	select -1 as gp_segment_id, spcname::text from pg_tablespace
+	UNION ALL
+	select gp_segment_id, spcname::text from gp_dist_random('pg_tablespace')
 	order by gp_segment_id, spcname
 $$ language sql;
 --
@@ -410,6 +417,94 @@ DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:dbid_under_test, :'tablespace_location');
 NOTICE:  Success:
+ cleanup 
+---------
+ 
+(1 row)
+
+--
+-- An unrelated aborted transaction after a `CREATE TABLESPACE`
+--    should not effect the created tablespaces.
+--
+-- expected: tablespace directories should still exist
+--
+\set tablespace_location /tmp/my_tablespace_for_testing
+\set expected_number_of_tablespaces 8
+\set dbid_under_test 1
+select remove_tablespace_directory(:'tablespace_location');
+ remove_tablespace_directory 
+-----------------------------
+ 
+(1 row)
+
+select setup_tablespaces_for_test(:'tablespace_location');
+ setup_tablespaces_for_test 
+----------------------------
+ 
+(1 row)
+
+create tablespace my_tablespace_for_testing LOCATION :'tablespace_location';
+-- force an aborted transaction which should no longer see a
+--     pending tablespace for deletion
+begin;
+abort;
+-- the tablespace should exist in the catalog
+select * from list_tablespace_catalog_without_oid();
+ gp_segment_id |      tablespace_name      
+---------------+---------------------------
+            -1 | my_tablespace_for_testing
+            -1 | pg_default
+            -1 | pg_global
+             0 | my_tablespace_for_testing
+             0 | pg_default
+             0 | pg_global
+             1 | my_tablespace_for_testing
+             1 | pg_default
+             1 | pg_global
+             2 | my_tablespace_for_testing
+             2 | pg_default
+             2 | pg_global
+(12 rows)
+
+-- the tablespace should exist on disk
+select list_tablespaces(:expected_number_of_tablespaces);
+NOTICE:  finding tablespaces:
+CONTEXT:  PL/Python function "list_tablespaces"
+NOTICE:  total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/6
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/1
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/7
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/3
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/4
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/5
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/2
+total 0
+lrwx------  1 adamberlin  staff  32 Jun 19 17:54 16440 -> /tmp/my_tablespace_for_testing/8
+CONTEXT:  PL/Python function "list_tablespaces"
+NOTICE:  found N tablespaces:
+CONTEXT:  PL/Python function "list_tablespaces"
+NOTICE:         8
+CONTEXT:  PL/Python function "list_tablespaces"
+NOTICE:  expected 8 tablespaces
+CONTEXT:  PL/Python function "list_tablespaces"
+NOTICE:  done finding tablespaces.
+CONTEXT:  PL/Python function "list_tablespaces"
+ list_tablespaces 
+------------------
+ 
+(1 row)
+
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:dbid_under_test, :'tablespace_location');
+NOTICE:  Success:
+CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid)"
+PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
  

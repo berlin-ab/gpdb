@@ -2577,6 +2577,12 @@ StartTransaction(void)
 					  LocalDistribXact_DisplayString(MyProc->pgprocno))));
 }
 
+static void
+AtEOXact_TablespaceStorage(void)
+{
+	UnscheduleTablespaceDirectoryDeletion();
+}
+
 /*
  *	CommitTransaction
  *
@@ -2815,6 +2821,7 @@ CommitTransaction(void)
 	AtEOXact_on_commit_actions(true);
 	AtEOXact_Namespace(true);
 	AtEOXact_SMgr();
+	AtEOXact_TablespaceStorage();
 	AtEOXact_Files();
 	AtEOXact_ComboCid();
 	AtEOXact_HashTables(true);
@@ -2860,7 +2867,6 @@ CommitTransaction(void)
 	if (ShouldUnassignResGroup())
 		UnassignResGroup();
 }
-
 
 /*
  *	PrepareTransaction

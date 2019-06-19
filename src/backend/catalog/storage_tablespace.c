@@ -37,7 +37,7 @@ ScheduleTablespaceDirectoryDeletion(Oid tablespace_oid)
 }
 
 Oid
-GetPendingTablespaceForDeletion()
+GetPendingTablespaceForDeletion(void)
 {
 	return tablespace_marked_for_deletion;
 }
@@ -55,4 +55,10 @@ void
 DoTablespaceDeletion(Oid tablespace_oid_to_delete)
 {
 	perform_pending_tablespace_deletion_internal(tablespace_oid_to_delete, true);
+}
+
+void
+UnscheduleTablespaceDirectoryDeletion(void)
+{
+	tablespace_storage_reset();
 }

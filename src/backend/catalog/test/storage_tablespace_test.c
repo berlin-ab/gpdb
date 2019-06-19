@@ -120,6 +120,31 @@ test__DoTablespaceDeletion_calls_unlink_with_tablespace_oid_and_redo_flag(void *
 	assert_int_equal(unlink_called_with_redo, true);
 }
 
+void test__UnscheduleTablespaceDirectoryDeletion_removes_the_scheduled_tablespace_for_deletion(void **state)
+{
+	setup();
+
+	ScheduleTablespaceDirectoryDeletion(66666);
+	UnscheduleTablespaceDirectoryDeletion();
+
+	Oid tablespaceForDeletion = GetPendingTablespaceForDeletion();
+
+	assert_int_equal(tablespaceForDeletion, InvalidOid);
+
+}
+
+void test__an_UnscheduleTablespaceDirectoryDeletion_does_not_get_unlinked(void **state)
+{
+	setup();
+
+	ScheduleTablespaceDirectoryDeletion(66666);
+	UnscheduleTablespaceDirectoryDeletion();
+	
+	DoPendingTablespaceDeletion();
+
+	assert_int_equal(unlink_called_with_tablespace_oid, NOT_CALLED_OID);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -141,6 +166,12 @@ main(int argc, char *argv[])
 			),
 		unit_test(
 			test__DoTablespaceDeletion_calls_unlink_with_tablespace_oid_and_redo_flag
+			),
+		unit_test(
+			test__UnscheduleTablespaceDirectoryDeletion_removes_the_scheduled_tablespace_for_deletion
+			),
+		unit_test(
+			test__an_UnscheduleTablespaceDirectoryDeletion_does_not_get_unlinked
 			)
 	};
 

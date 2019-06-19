@@ -16,6 +16,7 @@
 
 extern void TablespaceStorageInit(void (*unlink_tablespace_dir)(Oid tablespace_dir, bool isRedo));
 extern void ScheduleTablespaceDirectoryDeletion(Oid tablespaceoid);
+extern void UnscheduleTablespaceDirectoryDeletion(void);
 
 extern Oid GetPendingTablespaceForDeletion(void);
 extern void DoPendingTablespaceDeletion(void);

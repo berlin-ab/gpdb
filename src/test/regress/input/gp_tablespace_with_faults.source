@@ -1,5 +1,6 @@
 -- start_matchignore
 -- m/DETAIL: .*/
+-- m/.*adamberlin.*/
 -- end_matchignore
 
 
@@ -86,6 +87,14 @@ create or replace function list_tablespace_catalog() returns table(gp_segment_id
 	select -1 as gp_segment_id, spcname::text, oid from pg_tablespace
 	UNION ALL
 	select gp_segment_id, spcname::text, oid from gp_dist_random('pg_tablespace')
+	order by gp_segment_id, spcname
+$$ language sql;
+
+
+create or replace function list_tablespace_catalog_without_oid() returns table(gp_segment_id int, tablespace_name text) as $$
+	select -1 as gp_segment_id, spcname::text from pg_tablespace
+	UNION ALL
+	select gp_segment_id, spcname::text from gp_dist_random('pg_tablespace')
 	order by gp_segment_id, spcname
 $$ language sql;
 
@@ -199,6 +208,33 @@ select list_tablespaces(:expected_number_of_tablespaces);
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
+
+--
+-- An unrelated aborted transaction after a `CREATE TABLESPACE`
+--    should not effect the created tablespaces.
+--
+-- expected: tablespace directories should still exist
+--
+\set tablespace_location /tmp/my_tablespace_for_testing
+\set expected_number_of_tablespaces 8
+\set dbid_under_test 1
+
+select remove_tablespace_directory(:'tablespace_location');
+select setup_tablespaces_for_test(:'tablespace_location');
+create tablespace my_tablespace_for_testing LOCATION :'tablespace_location';
+
+-- force an aborted transaction which should no longer see a
+--     pending tablespace for deletion
+begin;
+abort;
+
+-- the tablespace should exist in the catalog
+select * from list_tablespace_catalog_without_oid();
+
+-- the tablespace should exist on disk
+select list_tablespaces(:expected_number_of_tablespaces);
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:dbid_under_test, :'tablespace_location');
 
 --x XLOG_TBLSPC_CREATE (on master)
 
