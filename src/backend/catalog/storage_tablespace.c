@@ -1,14 +1,14 @@
 #include "catalog/storage_tablespace.h"
 
 
-static Oid tablespaceMarkedForDeletion;
-static void (*unlink_tablespace_dir)(Oid tablespace_for_unlink, bool isRedo);
+static Oid tablespace_marked_for_deletion;
+static void (*unlink_tablespace_dir)(Oid tablespace_for_unlink, bool is_redo);
 
 
 static void
 tablespace_storage_reset(void)
 {
-	tablespaceMarkedForDeletion = InvalidOid;
+	tablespace_marked_for_deletion = InvalidOid;
 }
 
 static void
@@ -23,7 +23,7 @@ perform_pending_tablespace_deletion_internal(Oid tablespace_oid_to_delete,
 } 
 
 void
-TablespaceStorageInit(void (*unlink_tablespace_dir_function)(Oid tablespace_oid, bool isRedo))
+TablespaceStorageInit(void (*unlink_tablespace_dir_function)(Oid tablespace_oid, bool is_redo))
 {
 	unlink_tablespace_dir = unlink_tablespace_dir_function;
 	
@@ -31,15 +31,15 @@ TablespaceStorageInit(void (*unlink_tablespace_dir_function)(Oid tablespace_oid,
 }
 
 void
-ScheduleTablespaceDirectoryDeletion(Oid tablespaceoid)
+ScheduleTablespaceDirectoryDeletion(Oid tablespace_oid)
 {
-	tablespaceMarkedForDeletion = tablespaceoid;
+	tablespace_marked_for_deletion = tablespace_oid;
 }
 
 Oid
 GetPendingTablespaceForDeletion()
 {
-	return tablespaceMarkedForDeletion;
+	return tablespace_marked_for_deletion;
 }
 
 void
