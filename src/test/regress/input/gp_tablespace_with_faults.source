@@ -1,3 +1,8 @@
+-- start_matchignore
+-- m/DETAIL: .*/
+-- end_matchignore
+
+
 -- CREATE TABLESPACE
 
 create extension if not exists gp_inject_fault;
@@ -84,6 +89,7 @@ create or replace function list_tablespace_catalog() returns table(gp_segment_id
 	order by gp_segment_id, spcname
 $$ language sql;
 
+
 --
 -- An error after XLOG_TBLSPC_CREATE on master
 --
@@ -125,15 +131,65 @@ select cleanup(:dbid_under_test, :'tablespace_location');
 
 
 --
--- An error after XLOG_XACT_PREPARE on primary
+-- An panic after XLOG_XACT_PREPARE on primary
 --
 -- expected: tablespace should not exist after abort
 --
 \set dbid_under_test 2
 \set expected_number_of_tablespaces 0
-\set error_type error
+\set error_type panic
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_xact_prepare_flushed
+
+select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
+select give_mirrors_time_to_catch_up();
+select * from list_tablespace_catalog();
+select list_tablespaces(:expected_number_of_tablespaces);
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:dbid_under_test, :'tablespace_location');
+
+
+--
+-- An error before XLOG_XACT_PREPARE on primary
+--
+\set dbid_under_test 2
+\set expected_number_of_tablespaces 0
+\set error_type error
+\set tablespace_location /tmp/my_tablespace_for_testing
+\set fault_to_set before_xlog_xact_prepare
+
+select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
+select give_mirrors_time_to_catch_up();
+select * from list_tablespace_catalog();
+select list_tablespaces(:expected_number_of_tablespaces);
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:dbid_under_test, :'tablespace_location');
+
+--
+-- An error after XLOG_XACT_PREPARE on primary
+--
+-- This leaves a dangling global transaction in the proc array,
+-- but should not happen in practice.
+--
+
+--
+-- An panic before XLOG_XACT_PREPARE on primary
+--
+-- expected: tablespaces should be cleaned up everywhere
+--           except where the panic happened.
+--
+-- context:  we no longer have any history of the transaction taking place.
+--           it is no longer in memory, and we did not succeed in writing the
+--           prepared transaction, therefore we cannot safely clean
+--           the tablespace directory.
+--
+\set dbid_under_test 2
+\set expected_number_of_tablespaces 1
+\set error_type panic
+\set tablespace_location /tmp/my_tablespace_for_testing
+\set fault_to_set before_xlog_xact_prepare
 
 select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';

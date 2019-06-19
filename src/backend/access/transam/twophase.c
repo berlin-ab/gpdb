@@ -1139,6 +1139,8 @@ EndPrepare(GlobalTransaction gxact)
 	 */
 	TwoPhaseFilePath(path, xid);
 
+	SIMPLE_FAULT_INJECTOR("before_xlog_xact_prepare");
+
 	/*
 	 * We have to set inCommit here, too; otherwise a checkpoint starting
 	 * immediately after the WAL record is inserted could complete without
@@ -1162,8 +1164,6 @@ EndPrepare(GlobalTransaction gxact)
 	add_recover_post_checkpoint_prepared_transactions_map_entry(xid, &gxact->prepare_begin_lsn);
 
 	XLogFlush(gxact->prepare_lsn);
-
-	SIMPLE_FAULT_INJECTOR("after_xlog_xact_prepare_flushed");
 
 	/*
 	 * Now we may update the CLOG, if we wrote COMMIT record above
@@ -1191,6 +1191,8 @@ EndPrepare(GlobalTransaction gxact)
 	MyLockedGxact = gxact;
 
 	END_CRIT_SECTION();
+
+	SIMPLE_FAULT_INJECTOR("after_xlog_xact_prepare_flushed");
 
 	/*
 	 * Now we can mark ourselves as out of the commit critical section: a
