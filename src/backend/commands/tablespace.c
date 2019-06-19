@@ -413,7 +413,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	/*
 	 * Mark tablespace for deletion on abort.
 	 */
-	TablespaceCreateStorage(tablespaceoid);
+	ScheduleTablespaceDirectoryDeletion(tablespaceoid);
 
 	SIMPLE_FAULT_INJECTOR("after_xlog_create_tablespace");
 	

@@ -11,7 +11,8 @@ tablespace_storage_reset(void)
 	tablespaceMarkedForDeletion = InvalidOid;
 }
 
-static void perform_pending_tablespace_deletion_internal(Oid tablespace_oid_to_delete,
+static void
+perform_pending_tablespace_deletion_internal(Oid tablespace_oid_to_delete,
                                                          bool isRedo)
 {
 	if (tablespace_oid_to_delete == InvalidOid)
@@ -30,28 +31,28 @@ TablespaceStorageInit(void (*unlink_tablespace_dir_function)(Oid tablespace_oid,
 }
 
 void
-TablespaceCreateStorage(Oid tablespaceoid)
+ScheduleTablespaceDirectoryDeletion(Oid tablespaceoid)
 {
 	tablespaceMarkedForDeletion = tablespaceoid;
 }
 
 Oid
-smgrGetPendingTablespaceForDeletion()
+GetPendingTablespaceForDeletion()
 {
 	return tablespaceMarkedForDeletion;
 }
 
 void
-smgrDoPendingTablespaceDeletion(void)
+DoPendingTablespaceDeletion(void)
 {
 	perform_pending_tablespace_deletion_internal(
-		smgrGetPendingTablespaceForDeletion(),
+		GetPendingTablespaceForDeletion(),
 		false
 		);
 }
 
 void
-smgrDoTablespaceDeletion(Oid tablespace_oid_to_delete)
+DoTablespaceDeletion(Oid tablespace_oid_to_delete)
 {
 	perform_pending_tablespace_deletion_internal(tablespace_oid_to_delete, true);
 }

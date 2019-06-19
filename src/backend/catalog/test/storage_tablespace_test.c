@@ -39,9 +39,9 @@ test__create_tablespace_storage_populates_the_pending_tablespace_deletes_list(
 
 	Oid someTablespaceOid = 17999;
 
-	TablespaceCreateStorage(someTablespaceOid);
+	ScheduleTablespaceDirectoryDeletion(someTablespaceOid);
 
-	Oid tablespaceForDeletion = smgrGetPendingTablespaceForDeletion();
+	Oid tablespaceForDeletion = GetPendingTablespaceForDeletion();
 
 	assert_int_equal(17999, tablespaceForDeletion);
 
@@ -49,9 +49,9 @@ test__create_tablespace_storage_populates_the_pending_tablespace_deletes_list(
 
 	someTablespaceOid = 88888;
 
-	TablespaceCreateStorage(someTablespaceOid);
+	ScheduleTablespaceDirectoryDeletion(someTablespaceOid);
 
-	tablespaceForDeletion = smgrGetPendingTablespaceForDeletion();
+	tablespaceForDeletion = GetPendingTablespaceForDeletion();
 
 	assert_int_equal(88888, tablespaceForDeletion);
 }
@@ -61,36 +61,36 @@ test__get_pending_tablespace_for_deletion_returns_a_null_value_by_default(void *
 {
 	setup();
 
-	Oid tablespaceForDeletion = smgrGetPendingTablespaceForDeletion();
+	Oid tablespaceForDeletion = GetPendingTablespaceForDeletion();
 
 	assert_int_equal(InvalidOid, tablespaceForDeletion);
 }
 
 void
-test__smgrDoPendingTablespaceDeletion_removes_the_pending_tablespace_for_deletion_so_it_is_not_deleted_by_the_next_transaction(
+test__DoPendingTablespaceDeletion_removes_the_pending_tablespace_for_deletion_so_it_is_not_deleted_by_the_next_transaction(
 	void **state)
 {
 	setup();
 
 	Oid someTablespaceOid = 99999;
 
-	TablespaceCreateStorage(someTablespaceOid);
+	ScheduleTablespaceDirectoryDeletion(someTablespaceOid);
 
-	smgrDoPendingTablespaceDeletion();
+	DoPendingTablespaceDeletion();
 
-	Oid tablespaceForDeletion = smgrGetPendingTablespaceForDeletion();
+	Oid tablespaceForDeletion = GetPendingTablespaceForDeletion();
 
 	assert_int_equal(InvalidOid, tablespaceForDeletion);
 }
 
 void
-test__smgrDoPendingTablespaceDeletion_calls_unlink(void **state)
+test__DoPendingTablespaceDeletion_calls_unlink(void **state)
 {
 	setup();
 
-	TablespaceCreateStorage(99999);
+	ScheduleTablespaceDirectoryDeletion(99999);
 
-	smgrDoPendingTablespaceDeletion();
+	DoPendingTablespaceDeletion();
 
 	assert_int_equal(unlink_called_with_tablespace_oid, 99999);
 	assert_int_equal(unlink_called_with_redo, false);
@@ -101,20 +101,20 @@ test__delete_called_when_invalid_tablespace_set_does_not_call_unlink(void **stat
 {
 	setup();
 
-	TablespaceCreateStorage(InvalidOid);
+	ScheduleTablespaceDirectoryDeletion(InvalidOid);
 
-	smgrDoPendingTablespaceDeletion();
+	DoPendingTablespaceDeletion();
 
 	assert_int_equal(unlink_called_with_tablespace_oid, NOT_CALLED_OID);
 }
 
 void
-test__smgrDoTablespaceDeletion_calls_unlink_with_tablespace_oid_and_redo_flag(void **state) {
+test__DoTablespaceDeletion_calls_unlink_with_tablespace_oid_and_redo_flag(void **state) {
 	setup();
 
-	TablespaceCreateStorage(66666);
+	ScheduleTablespaceDirectoryDeletion(66666);
 
-	smgrDoTablespaceDeletion(77777);
+	DoTablespaceDeletion(77777);
 
 	assert_int_equal(unlink_called_with_tablespace_oid, 77777);
 	assert_int_equal(unlink_called_with_redo, true);
@@ -131,16 +131,16 @@ main(int argc, char *argv[])
 		unit_test(
 			test__get_pending_tablespace_for_deletion_returns_a_null_value_by_default),
 		unit_test(
-			test__smgrDoPendingTablespaceDeletion_removes_the_pending_tablespace_for_deletion_so_it_is_not_deleted_by_the_next_transaction
+			test__DoPendingTablespaceDeletion_removes_the_pending_tablespace_for_deletion_so_it_is_not_deleted_by_the_next_transaction
 		),
 		unit_test(
-			test__smgrDoPendingTablespaceDeletion_calls_unlink
+			test__DoPendingTablespaceDeletion_calls_unlink
 		),
 		unit_test(
 			test__delete_called_when_invalid_tablespace_set_does_not_call_unlink
 			),
 		unit_test(
-			test__smgrDoTablespaceDeletion_calls_unlink_with_tablespace_oid_and_redo_flag
+			test__DoTablespaceDeletion_calls_unlink_with_tablespace_oid_and_redo_flag
 			)
 	};
 

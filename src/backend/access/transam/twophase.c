@@ -1065,7 +1065,7 @@ StartPrepare(GlobalTransaction gxact)
 	hdr.database = proc->databaseId;
 	hdr.prepared_at = gxact->prepared_at;
 	hdr.owner = gxact->owner;
-	hdr.tablespace_oid_to_abort = smgrGetPendingTablespaceForDeletion();
+	hdr.tablespace_oid_to_abort = GetPendingTablespaceForDeletion();
 	hdr.nsubxacts = xactGetCommittedChildren(&children);
 	hdr.ncommitrels = smgrGetPendingDeletes(true, &commitrels);
 	hdr.nabortrels = smgrGetPendingDeletes(false, &abortrels);
@@ -1430,7 +1430,7 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	{
 		delrels = abortrels;
 		ndelrels = hdr->nabortrels;
-		smgrDoTablespaceDeletion(hdr->tablespace_oid_to_abort);
+		DoTablespaceDeletion(hdr->tablespace_oid_to_abort);
 	}
 
 	/* Make sure files supposed to be dropped are dropped */
