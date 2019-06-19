@@ -77,6 +77,13 @@ create or replace function give_mirrors_time_to_catch_up() returns void as $$
 $$ language sql;
 
 
+create or replace function list_tablespace_catalog() returns table(gp_segment_id int, tablespace_name text, oid oid) as $$
+	select -1 as gp_segment_id, spcname::text, oid from pg_tablespace
+	UNION ALL
+	select gp_segment_id, spcname::text, oid from gp_dist_random('pg_tablespace')
+	order by gp_segment_id, spcname
+$$ language sql;
+
 --
 -- An error after XLOG_TBLSPC_CREATE on master
 --
@@ -91,7 +98,7 @@ $$ language sql;
 select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
-select spcname, oid from pg_tablespace;
+select * from list_tablespace_catalog();
 select list_tablespaces(:expected_number_of_tablespaces);
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
@@ -111,7 +118,7 @@ select cleanup(:dbid_under_test, :'tablespace_location');
 select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
-select spcname, oid from pg_tablespace;
+select * from list_tablespace_catalog();
 select list_tablespaces(:expected_number_of_tablespaces);
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
@@ -131,8 +138,7 @@ select cleanup(:dbid_under_test, :'tablespace_location');
 select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
-select spcname, oid from pg_tablespace;
-select gp_segment_id, spcname, oid from gp_dist_random('pg_tablespace') order by gp_segment_id, oid;
+select * from list_tablespace_catalog();
 select list_tablespaces(:expected_number_of_tablespaces);
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');

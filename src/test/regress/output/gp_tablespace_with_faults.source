@@ -62,6 +62,12 @@ $$ language plpythonu;
 create or replace function give_mirrors_time_to_catch_up() returns void as $$
 	select pg_sleep(1);
 $$ language sql;
+create or replace function list_tablespace_catalog() returns table(gp_segment_id int, tablespace_name text, oid oid) as $$
+	select -1 as gp_segment_id, spcname::text, oid from pg_tablespace
+	UNION ALL
+	select gp_segment_id, spcname::text, oid from gp_dist_random('pg_tablespace')
+	order by gp_segment_id, spcname
+$$ language sql;
 --
 -- An error after XLOG_TBLSPC_CREATE on master
 --
@@ -92,12 +98,18 @@ select give_mirrors_time_to_catch_up();
  
 (1 row)
 
-select spcname, oid from pg_tablespace;
-  spcname   | oid  
-------------+------
- pg_default | 1663
- pg_global  | 1664
-(2 rows)
+select * from list_tablespace_catalog();
+ gp_segment_id | tablespace_name | oid  
+---------------+-----------------+------
+             0 | pg_default      | 1663
+             0 | pg_global       | 1664
+             1 | pg_default      | 1663
+             1 | pg_global       | 1664
+             2 | pg_default      | 1663
+             2 | pg_global       | 1664
+            -1 | pg_default      | 1663
+            -1 | pg_global       | 1664
+(8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces);
 NOTICE:  finding tablespaces:
@@ -154,12 +166,18 @@ select give_mirrors_time_to_catch_up();
  
 (1 row)
 
-select spcname, oid from pg_tablespace;
-  spcname   | oid  
-------------+------
- pg_default | 1663
- pg_global  | 1664
-(2 rows)
+select * from list_tablespace_catalog();
+ gp_segment_id | tablespace_name | oid  
+---------------+-----------------+------
+             0 | pg_default      | 1663
+             0 | pg_global       | 1664
+             1 | pg_default      | 1663
+             1 | pg_global       | 1664
+             2 | pg_default      | 1663
+             2 | pg_global       | 1664
+            -1 | pg_default      | 1663
+            -1 | pg_global       | 1664
+(8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces);
 NOTICE:  finding tablespaces:
@@ -213,23 +231,18 @@ select give_mirrors_time_to_catch_up();
  
 (1 row)
 
-select spcname, oid from pg_tablespace;
-  spcname   | oid  
-------------+------
- pg_default | 1663
- pg_global  | 1664
-(2 rows)
-
-select gp_segment_id, spcname, oid from gp_dist_random('pg_tablespace') order by gp_segment_id, oid;
- gp_segment_id |  spcname   | oid  
----------------+------------+------
-             0 | pg_default | 1663
-             0 | pg_global  | 1664
-             1 | pg_default | 1663
-             1 | pg_global  | 1664
-             2 | pg_default | 1663
-             2 | pg_global  | 1664
-(6 rows)
+select * from list_tablespace_catalog();
+ gp_segment_id | tablespace_name | oid  
+---------------+-----------------+------
+             0 | pg_default      | 1663
+             0 | pg_global       | 1664
+             1 | pg_default      | 1663
+             1 | pg_global       | 1664
+             2 | pg_default      | 1663
+             2 | pg_global       | 1664
+            -1 | pg_default      | 1663
+            -1 | pg_global       | 1664
+(8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces);
 NOTICE:  finding tablespaces:
