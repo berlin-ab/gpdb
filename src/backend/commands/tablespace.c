@@ -652,6 +652,9 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 	char	   *location_with_version_dir;
 	struct stat st;
 
+	elog(DEBUG5, "creating tablespace directories for tablespaceoid %d on dbid %d",
+		tablespaceoid, GpIdentity.dbid);
+
 	linkloc = psprintf("pg_tblspc/%u", tablespaceoid);
 	location_with_dbid_dir = psprintf("%s/%d", location, GpIdentity.dbid);
 	location_with_version_dir = psprintf("%s/%s", location_with_dbid_dir,
@@ -812,6 +815,9 @@ destroy_tablespace_directories(Oid tablespaceoid, bool redo)
 	struct dirent *de;
 	char	   *subfile;
 	struct stat st;
+
+	elog(DEBUG5, "destroy_tablespace_directories for tablespace %d on dbid %d",
+		tablespaceoid, GpIdentity.dbid);
 
 	linkloc_with_version_dir = psprintf("pg_tblspc/%u/%s", tablespaceoid,
 										GP_TABLESPACE_VERSION_DIRECTORY);
