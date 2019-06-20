@@ -1,9 +1,3 @@
--- start_matchignore
--- m/DETAIL: .*/
--- m/.*adamberlin.*/
--- end_matchignore
-
-
 -- CREATE TABLESPACE
 
 create extension if not exists gp_inject_fault;
@@ -14,14 +8,17 @@ create or replace function remove_tablespace_directory(tablespace_dir text) retu
 	import shutil;
 	import os;
 	import subprocess
-	
-	result = subprocess.check_output("find $MASTER_DATA_DIRECTORY/../../ -name pg_tblspc", shell=True);
+	import os
+	import glob
+	working_directory = os.getcwd()
+	tablespace_directory  = working_directory + "/pg_tblspc"
+	result = glob.glob("{tablespace_directory}".format(tablespace_directory=tablespace_directory))
 
 	full_list = [ 
 		[found_tablespace_dir + '/' + tablespace_oid 
 			for tablespace_oid in os.listdir(found_tablespace_dir)
 			] for found_tablespace_dir 
-				in result.split("\n") 
+				in result
 				if found_tablespace_dir 
 	]
 	
@@ -50,6 +47,7 @@ $$ LANGUAGE plpythonu;
 create or replace function setup(dbid integer, fault_name text, fault_action_type text, tablespace_dir text) returns void as $$
 	begin
 		perform remove_tablespace_directory(tablespace_dir);
+		perform remove_tablespace_directory(tablespace_dir) from gp_dist_random('gp_id');
 		perform setup_tablespaces_for_test(tablespace_dir);
 		perform gp_inject_fault('all', 'reset', dbid);
 		perform gp_inject_fault(fault_name, fault_action_type, dbid);
@@ -61,20 +59,19 @@ create or replace function cleanup(dbid integer, tablespace_dir text) returns vo
 	begin
 		perform gp_inject_fault('all', 'reset', dbid);
 		perform remove_tablespace_directory(tablespace_dir);
+		checkpoint;
 	end;
 $$ LANGUAGE plpgsql;
 
 
-create or replace function list_tablespaces(expected_number_of_tablespaces integer) returns void as $$
-	import subprocess
-	plpy.notice('finding tablespaces:')
-	result = subprocess.check_output("find $MASTER_DATA_DIRECTORY/../../ -name pg_tblspc -exec ls -l {} \;", shell=True);
-	plpy.notice(result);
-	plpy.notice('found N tablespaces:');
-	result = subprocess.check_output("find $MASTER_DATA_DIRECTORY/../../ -name pg_tblspc -exec ls {} \; | wc -l;", shell=True);
-	plpy.notice(result);	
-	plpy.notice('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces)); 
-	plpy.notice('done finding tablespaces.');
+create or replace function list_tablespaces(expected_number_of_tablespaces integer, tablespace_directory text) returns void as $$
+	import glob
+	rows = glob.glob("{tablespace_directory}/*".format(tablespace_directory=tablespace_directory))
+	rows.sort()
+
+	plpy.notice(rows)
+	plpy.notice('found %d tablespaces' % len(rows))
+	plpy.notice('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces))
 $$ language plpythonu;
 
 
@@ -114,7 +111,7 @@ select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_loca
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
 select * from list_tablespace_catalog();
-select list_tablespaces(:expected_number_of_tablespaces);
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
@@ -134,7 +131,7 @@ select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_loca
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
 select * from list_tablespace_catalog();
-select list_tablespaces(:expected_number_of_tablespaces);
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
@@ -154,7 +151,7 @@ select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_loca
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
 select * from list_tablespace_catalog();
-select list_tablespaces(:expected_number_of_tablespaces);
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
@@ -172,7 +169,7 @@ select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_loca
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
 select * from list_tablespace_catalog();
-select list_tablespaces(:expected_number_of_tablespaces);
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
@@ -204,7 +201,7 @@ select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_loca
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select give_mirrors_time_to_catch_up();
 select * from list_tablespace_catalog();
-select list_tablespaces(:expected_number_of_tablespaces);
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
@@ -232,7 +229,7 @@ abort;
 select * from list_tablespace_catalog_without_oid();
 
 -- the tablespace should exist on disk
-select list_tablespaces(:expected_number_of_tablespaces);
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
