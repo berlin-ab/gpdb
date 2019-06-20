@@ -1,5 +1,4 @@
 -- CREATE TABLESPACE
-create extension if not exists gp_inject_fault;
 create or replace language plpythonu;
 create or replace function remove_tablespace_directory(tablespace_dir text) returns void as $$
 	import shutil;

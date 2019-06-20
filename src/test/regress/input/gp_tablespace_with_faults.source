@@ -1,6 +1,5 @@
 -- CREATE TABLESPACE
 
-create extension if not exists gp_inject_fault;
 create or replace language plpythonu;
 
 
