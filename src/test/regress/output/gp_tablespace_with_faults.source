@@ -65,8 +65,24 @@ create or replace function list_tablespaces(expected_number_of_tablespaces integ
 	plpy.notice('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces))
 $$ language plpythonu;
 create or replace function give_mirrors_time_to_catch_up() returns void as $$
-	select pg_sleep(1);
-$$ language sql;
+declare number_of_segments_behind integer;
+declare number_of_retries integer default 0;
+begin
+	CHECKPOINT;
+	LOOP
+		IF number_of_retries = 50 THEN
+			raise EXCEPTION 'too many retries waiting for mirrors to catch up';
+		END IF;
+
+		select count(1) into number_of_segments_behind from (select gp_execution_segment(), pg_last_xlog_replay_location() as replayed, pg_last_xlog_receive_location() as recieved UNION ALL select gp_execution_segment(), pg_last_xlog_replay_location() as replayed, pg_last_xlog_receive_location() as recieved from gp_dist_random('gp_id')) thing where replayed != recieved;
+		number_of_retries := number_of_retries + 1;
+
+		EXIT WHEN number_of_segments_behind = 0;
+
+		perform pg_sleep(0.1);
+	END LOOP;
+end;
+$$ language plpgsql;
 create or replace function list_tablespace_catalog() returns table(gp_segment_id int, tablespace_name text, oid oid) as $$
 	select -1 as gp_segment_id, spcname::text, oid from pg_tablespace
 	UNION ALL
@@ -396,6 +412,12 @@ select setup_tablespaces_for_test(:'tablespace_location');
 (1 row)
 
 create tablespace my_tablespace_for_testing LOCATION :'tablespace_location';
+select * from give_mirrors_time_to_catch_up();
+ give_mirrors_time_to_catch_up 
+-------------------------------
+ 
+(1 row)
+
 -- force an aborted transaction which should no longer see a
 --     pending tablespace for deletion
 begin;
