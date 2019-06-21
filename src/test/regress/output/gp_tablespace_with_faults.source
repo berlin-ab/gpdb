@@ -36,18 +36,21 @@ create or replace function setup_tablespaces_for_test(tablespace_dir text) retur
 	import os;
 	os.mkdir(tablespace_dir);
 $$ LANGUAGE plpythonu;
-create or replace function setup(dbid integer, fault_name text, fault_action_type text, tablespace_dir text) returns void as $$
+create or replace function setup(content_id integer, fault_name text, fault_action_type text, tablespace_dir text) returns void as $$
 	begin
+		-- reset tablespace directories
 		perform remove_tablespace_directory(tablespace_dir);
 		perform remove_tablespace_directory(tablespace_dir) from gp_dist_random('gp_id');
 		perform setup_tablespaces_for_test(tablespace_dir);
-		perform gp_inject_fault('all', 'reset', dbid);
-		perform gp_inject_fault(fault_name, fault_action_type, dbid);
+
+		-- setup faults
+		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
 	end;
 $$ LANGUAGE plpgsql;
-create or replace function cleanup(dbid integer, tablespace_dir text) returns void as $$
+create or replace function cleanup(content_id integer, tablespace_dir text) returns void as $$
 	begin
-		perform gp_inject_fault('all', 'reset', dbid);
+		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
 		perform remove_tablespace_directory(tablespace_dir);
 		checkpoint;
 	end;
@@ -81,18 +84,18 @@ $$ language sql;
 --
 -- expected: tablespace should not exist after abort
 --
-\set dbid_under_test 1
+\set content_id_under_test -1
 \set expected_number_of_tablespaces 0
 \set error_type error
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_create_tablespace
-select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid)"
-PL/pgSQL function setup(integer,text,text,text) line 6 at PERFORM
+CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
+PL/pgSQL function setup(integer,text,text,text) line 9 at PERFORM
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault(fault_name, fault_action_type, dbid)"
-PL/pgSQL function setup(integer,text,text,text) line 7 at PERFORM
+CONTEXT:  SQL statement "SELECT gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p'"
+PL/pgSQL function setup(integer,text,text,text) line 10 at PERFORM
  setup 
 -------
  
@@ -133,9 +136,9 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid)"
+CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
 PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
@@ -147,12 +150,12 @@ PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
 --
 -- expected: tablespace should not exist after abort
 --
-\set dbid_under_test 2
+\set content_id_under_test 0
 \set expected_number_of_tablespaces 0
 \set error_type error
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_create_tablespace
-select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
 NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
  setup 
@@ -195,7 +198,7 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
  cleanup 
 ---------
@@ -207,12 +210,12 @@ NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
 --
 -- expected: tablespace should not exist after abort
 --
-\set dbid_under_test 2
+\set content_id_under_test 0
 \set expected_number_of_tablespaces 0
 \set error_type panic
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_xact_prepare_flushed
-select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 NOTICE:  Success:
  setup 
 -------
@@ -254,7 +257,7 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:
  cleanup 
 ---------
@@ -264,12 +267,12 @@ NOTICE:  Success:
 --
 -- An error before XLOG_XACT_PREPARE on primary
 --
-\set dbid_under_test 2
+\set content_id_under_test 0
 \set expected_number_of_tablespaces 0
 \set error_type error
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_prepare
-select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 NOTICE:  Success:
  setup 
 -------
@@ -311,7 +314,7 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:
  cleanup 
 ---------
@@ -335,12 +338,12 @@ NOTICE:  Success:
 --           prepared transaction, therefore we cannot safely clean
 --           the tablespace directory.
 --
-\set dbid_under_test 2
+\set content_id_under_test 0
 \set expected_number_of_tablespaces 1
 \set error_type panic
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_prepare
-select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 NOTICE:  Success:
  setup 
 -------
@@ -382,7 +385,7 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:
  cleanup 
 ---------
@@ -397,7 +400,7 @@ NOTICE:  Success:
 --
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set expected_number_of_tablespaces 8
-\set dbid_under_test 1
+\set content_id_under_test -1
 select remove_tablespace_directory(:'tablespace_location');
  remove_tablespace_directory 
 -----------------------------
@@ -447,9 +450,9 @@ CONTEXT:  PL/Python function "list_tablespaces"
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid)"
+CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
 PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
@@ -462,18 +465,18 @@ PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
 -- expected: tablespaces should be cleaned up everywhere
 --
 --
-\set dbid_under_test 1
+\set content_id_under_test -1
 \set expected_number_of_tablespaces 0
 \set error_type error
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_distributed_commit
-select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid)"
-PL/pgSQL function setup(integer,text,text,text) line 6 at PERFORM
+CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
+PL/pgSQL function setup(integer,text,text,text) line 9 at PERFORM
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault(fault_name, fault_action_type, dbid)"
-PL/pgSQL function setup(integer,text,text,text) line 7 at PERFORM
+CONTEXT:  SQL statement "SELECT gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p'"
+PL/pgSQL function setup(integer,text,text,text) line 10 at PERFORM
  setup 
 -------
  
@@ -514,9 +517,9 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
-select cleanup(:dbid_under_test, :'tablespace_location');
+select cleanup(:content_id_under_test, :'tablespace_location');
 NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid)"
+CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
 PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
@@ -524,7 +527,7 @@ PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
 (1 row)
 
 -- XLOG_TBLSPC_CREATE (on master)
--- ? - then tablespace should not exist VIA ABORT 
+-- ? - then tablespace should not exist VIA ABORT
 -- XLOG_TBLSPC_CREATE (on primary)
 -- ? - then tablespace should not exist VIA ABORT 
  
