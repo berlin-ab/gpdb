@@ -1623,6 +1623,7 @@ RecordTransactionCommit(void)
 	{
 		MyPgXact->delayChkpt = false;
 		END_CRIT_SECTION();
+		SIMPLE_FAULT_INJECTOR("after_xlog_xact_distributed_commit");
 	}
 
 	/*
