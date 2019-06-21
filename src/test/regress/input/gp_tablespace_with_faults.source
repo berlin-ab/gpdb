@@ -51,15 +51,15 @@ create or replace function setup(content_id integer, fault_name text, fault_acti
 		perform setup_tablespaces_for_test(tablespace_dir);
 
 		-- setup faults
-		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
-		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault2(fault_name, fault_action_type, dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
 	end;
 $$ LANGUAGE plpgsql;
 
 
 create or replace function cleanup(content_id integer, tablespace_dir text) returns void as $$
 	begin
-		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
 		perform remove_tablespace_directory(tablespace_dir);
 		checkpoint;
 	end;

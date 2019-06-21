@@ -14,6 +14,23 @@
 static Oid unlink_called_with_tablespace_oid;
 static bool unlink_called_with_redo;
 static Oid NOT_CALLED_OID = -1000;
+static bool assertion_thrown = false;
+
+/*
+ * Redefine Assert infrastructure
+ */
+bool assert_enabled = true;
+
+void ExceptionalCondition() {
+	assertion_thrown = true;
+}
+
+/*
+ * Test helpers
+ */
+static void reset_exceptions() {
+	assertion_thrown = false;
+}
 
 
 static void unlink_tablespace_directory(Oid tablespaceOid, bool isRedo) {
@@ -27,10 +44,14 @@ setup()
 {
 	unlink_called_with_redo = false;
 	unlink_called_with_tablespace_oid = NOT_CALLED_OID;
+
+	reset_exceptions();
 	TablespaceStorageInit(unlink_tablespace_directory);
 }
 
-
+/*
+ * Tests
+ */
 void
 test__create_tablespace_storage_populates_the_pending_tablespace_deletes_list(
 	void **state)
@@ -145,6 +166,21 @@ void test__an_UnscheduleTablespaceDirectoryDeletion_does_not_get_unlinked(void *
 	assert_int_equal(unlink_called_with_tablespace_oid, NOT_CALLED_OID);
 }
 
+void test__initializing_multiple_times_will_throw_an_assert_error(void **state) 
+{
+	setup();
+
+	TablespaceStorageInit(unlink_tablespace_directory);
+
+	reset_exceptions();
+
+	assert_false(assertion_thrown);
+
+	TablespaceStorageInit(unlink_tablespace_directory);
+
+	assert_true(assertion_thrown);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -172,6 +208,9 @@ main(int argc, char *argv[])
 			),
 		unit_test(
 			test__an_UnscheduleTablespaceDirectoryDeletion_does_not_get_unlinked
+			),
+		unit_test(
+			test__initializing_multiple_times_will_throw_an_assert_error
 			)
 	};
 

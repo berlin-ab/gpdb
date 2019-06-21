@@ -44,13 +44,13 @@ create or replace function setup(content_id integer, fault_name text, fault_acti
 		perform setup_tablespaces_for_test(tablespace_dir);
 
 		-- setup faults
-		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
-		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault2(fault_name, fault_action_type, dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
 	end;
 $$ LANGUAGE plpgsql;
 create or replace function cleanup(content_id integer, tablespace_dir text) returns void as $$
 	begin
-		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
+		perform gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where content = content_id and role = 'p';
 		perform remove_tablespace_directory(tablespace_dir);
 		checkpoint;
 	end;
@@ -90,12 +90,6 @@ $$ language sql;
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_create_tablespace
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function setup(integer,text,text,text) line 9 at PERFORM
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function setup(integer,text,text,text) line 10 at PERFORM
  setup 
 -------
  
@@ -137,9 +131,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
  
@@ -156,8 +147,6 @@ PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_create_tablespace
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
-NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
-NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
  setup 
 -------
  
@@ -199,7 +188,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
  cleanup 
 ---------
  
@@ -216,7 +204,6 @@ NOTICE:  Success:  (seg0 127.0.0.1:7002 pid=42782)
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_xact_prepare_flushed
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
-NOTICE:  Success:
  setup 
 -------
  
@@ -258,7 +245,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:
  cleanup 
 ---------
  
@@ -273,7 +259,6 @@ NOTICE:  Success:
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_prepare
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
-NOTICE:  Success:
  setup 
 -------
  
@@ -315,7 +300,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:
  cleanup 
 ---------
  
@@ -344,7 +328,6 @@ NOTICE:  Success:
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_prepare
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
-NOTICE:  Success:
  setup 
 -------
  
@@ -386,7 +369,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:
  cleanup 
 ---------
  
@@ -451,9 +433,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
  
@@ -471,12 +450,6 @@ PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_distributed_commit
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function setup(integer,text,text,text) line 9 at PERFORM
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function setup(integer,text,text,text) line 10 at PERFORM
  setup 
 -------
  
@@ -518,9 +491,6 @@ CONTEXT:  PL/Python function "list_tablespaces"
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
-NOTICE:  Success:
-CONTEXT:  SQL statement "SELECT gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p'"
-PL/pgSQL function cleanup(integer,text) line 3 at PERFORM
  cleanup 
 ---------
  

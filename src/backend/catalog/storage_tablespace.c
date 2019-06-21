@@ -1,8 +1,10 @@
 #include "catalog/storage_tablespace.h"
+#include "utils/elog.h"
 
 
 static Oid pending_tablespace_scheduled_for_deletion;
 static void (*unlink_tablespace_dir)(Oid tablespace_for_unlink, bool is_redo);
+static bool has_initialized = false;
 
 
 static void
@@ -25,8 +27,11 @@ perform_pending_tablespace_deletion_internal(Oid tablespace_oid_to_delete,
 void
 TablespaceStorageInit(void (*unlink_tablespace_dir_function)(Oid tablespace_oid, bool is_redo))
 {
+	Assert(!has_initialized);
+	has_initialized = true;
+
 	unlink_tablespace_dir = unlink_tablespace_dir_function;
-	
+
 	tablespace_storage_reset();
 }
 
