@@ -1356,6 +1356,9 @@ RecordTransactionCommit(void)
 		if (markXidCommitted)
 			BufmgrCommit();
 
+		if (isDtxPrepared)
+			SIMPLE_FAULT_INJECTOR("before_xlog_xact_distributed_commit");
+
 		/*
 		 * Mark ourselves as within our "commit critical section".  This
 		 * forces any concurrent checkpoint to wait until we've updated

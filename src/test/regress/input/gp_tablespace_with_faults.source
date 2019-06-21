@@ -232,9 +232,30 @@ select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location')
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:dbid_under_test, :'tablespace_location');
 
---x XLOG_TBLSPC_CREATE (on master)
 
---x ? - then tablespace should not exist VIA ABORT 
+--
+-- An error before XLOG_XACT_DISTRIBUTED_COMMIT on master
+--
+-- expected: tablespaces should be cleaned up everywhere
+--
+--
+\set dbid_under_test 1
+\set expected_number_of_tablespaces 0
+\set error_type error
+\set tablespace_location /tmp/my_tablespace_for_testing
+\set fault_to_set before_xlog_xact_distributed_commit
+
+select setup(:dbid_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
+select give_mirrors_time_to_catch_up();
+select * from list_tablespace_catalog();
+select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:dbid_under_test, :'tablespace_location');
+
+-- XLOG_TBLSPC_CREATE (on master)
+
+-- ? - then tablespace should not exist VIA ABORT
 
 -- XLOG_TBLSPC_CREATE (on primary)
 
