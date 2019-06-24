@@ -788,7 +788,10 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 void 
 UnlinkTablespaceDirectory(Oid tablepace_oid_to_unlink, bool isRedo) 
 {
-	destroy_tablespace_directories(tablepace_oid_to_unlink, isRedo);
+	if (!destroy_tablespace_directories(tablepace_oid_to_unlink, isRedo))
+		ereport(WARNING, (
+			errmsg("tablespace directory delete failed for tablespace id: %d", tablepace_oid_to_unlink)
+			));
 }
 
 /*
