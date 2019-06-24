@@ -149,6 +149,7 @@ typedef struct xl_xact_commit
 	int			nmsgs;			/* number of shared inval msgs */
 	Oid			dbId;			/* MyDatabaseId */
 	Oid			tsId;			/* MyDatabaseTableSpace */
+	Oid			tablespace_oid_to_delete;
 	DistributedTransactionTimeStamp distribTimeStamp; /**/
 	DistributedTransactionId        distribXid;       /**/
 	/* Array of RelFileNode(s) to drop at commit */

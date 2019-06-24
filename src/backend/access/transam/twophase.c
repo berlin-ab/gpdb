@@ -1065,7 +1065,7 @@ StartPrepare(GlobalTransaction gxact)
 	hdr.database = proc->databaseId;
 	hdr.prepared_at = gxact->prepared_at;
 	hdr.owner = gxact->owner;
-	hdr.tablespace_oid_to_abort = GetPendingTablespaceForDeletion();
+	hdr.tablespace_oid_to_abort = GetPendingTablespaceForDeletionForAbort();
 	hdr.nsubxacts = xactGetCommittedChildren(&children);
 	hdr.ncommitrels = smgrGetPendingDeletes(true, &commitrels);
 	hdr.nabortrels = smgrGetPendingDeletes(false, &abortrels);
@@ -1937,6 +1937,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 
 	xlrec.crec.dbId = MyDatabaseId;
 	xlrec.crec.tsId = MyDatabaseTableSpace;
+	xlrec.crec.tablespace_oid_to_delete = GetPendingTablespaceForDeletionForCommit();
 	xlrec.crec.xact_time = GetCurrentTimestamp();
 	xlrec.crec.nrels = nrels;
 	xlrec.crec.nsubxacts = nchildren;

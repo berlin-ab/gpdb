@@ -1,14 +1,21 @@
 #include "catalog/storage_tablespace.h"
 
 
-static Oid pending_tablespace_scheduled_for_deletion;
+static Oid pending_tablespace_scheduled_for_deletion_on_abort;
+static Oid pending_tablespace_scheduled_for_deletion_on_commit;
 static void (*unlink_tablespace_dir)(Oid tablespace_for_unlink, bool is_redo);
 
 
 static void
-tablespace_storage_reset(void)
+tablespace_storage_reset_on_abort(void)
 {
-	pending_tablespace_scheduled_for_deletion = InvalidOid;
+	pending_tablespace_scheduled_for_deletion_on_abort = InvalidOid;
+}
+
+static void
+tablespace_storage_reset_on_commit(void)
+{
+	pending_tablespace_scheduled_for_deletion_on_commit = InvalidOid;
 }
 
 static void
@@ -19,7 +26,6 @@ perform_pending_tablespace_deletion_internal(Oid tablespace_oid_to_delete,
 		return;
 
 	unlink_tablespace_dir(tablespace_oid_to_delete, isRedo);
-	tablespace_storage_reset();
 } 
 
 void
@@ -27,38 +33,75 @@ TablespaceStorageInit(void (*unlink_tablespace_dir_function)(Oid tablespace_oid,
 {
 	unlink_tablespace_dir = unlink_tablespace_dir_function;
 
-	tablespace_storage_reset();
+	tablespace_storage_reset_on_abort();
+	tablespace_storage_reset_on_commit();
 }
 
+/*
+ * For abort:
+ */
 void
-ScheduleTablespaceDirectoryDeletion(Oid tablespace_oid)
+ScheduleTablespaceDirectoryDeletionForAbort(Oid tablespace_oid)
 {
-	pending_tablespace_scheduled_for_deletion = tablespace_oid;
+	pending_tablespace_scheduled_for_deletion_on_abort = tablespace_oid;
 }
 
 Oid
-GetPendingTablespaceForDeletion(void)
+GetPendingTablespaceForDeletionForAbort(void)
 {
-	return pending_tablespace_scheduled_for_deletion;
+	return pending_tablespace_scheduled_for_deletion_on_abort;
 }
 
 void
-DoPendingTablespaceDeletion(void)
+DoPendingTablespaceDeletionForAbort(void)
 {
 	perform_pending_tablespace_deletion_internal(
-		GetPendingTablespaceForDeletion(),
+		GetPendingTablespaceForDeletionForAbort(),
 		false
 		);
+	tablespace_storage_reset_on_abort();
 }
 
+void
+UnscheduleTablespaceDirectoryDeletionForAbort(void)
+{
+	tablespace_storage_reset_on_abort();
+}
+
+
+/* 
+ * For commit:
+ */
+void ScheduleTablespaceDirectoryDeletionForCommit(Oid tablespaceoid)
+{
+	pending_tablespace_scheduled_for_deletion_on_commit = tablespaceoid;
+}
+
+void UnscheduleTablespaceDirectoryDeletionForCommit(void)
+{
+	tablespace_storage_reset_on_commit();
+}
+
+Oid GetPendingTablespaceForDeletionForCommit(void)
+{
+	return pending_tablespace_scheduled_for_deletion_on_commit;
+}
+
+void DoPendingTablespaceDeletionForCommit(void)
+{
+	perform_pending_tablespace_deletion_internal(
+		GetPendingTablespaceForDeletionForCommit(),
+		false);
+
+	tablespace_storage_reset_on_commit();
+}
+
+/*
+ *  Arbitrary:
+ *  
+ */
 void
 DoTablespaceDeletion(Oid tablespace_oid_to_delete)
 {
 	perform_pending_tablespace_deletion_internal(tablespace_oid_to_delete, true);
-}
-
-void
-UnscheduleTablespaceDirectoryDeletion(void)
-{
-	tablespace_storage_reset();
 }
