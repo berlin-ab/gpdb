@@ -66,14 +66,26 @@ create or replace function cleanup(content_id integer, tablespace_dir text) retu
 $$ LANGUAGE plpgsql;
 
 
-create or replace function list_tablespaces(expected_number_of_tablespaces integer, tablespace_directory text) returns void as $$
+create or replace function list_tablespaces(expected_number_of_tablespaces integer, tablespace_directory text) returns varchar[] as $$
 	import glob
 	rows = glob.glob("{tablespace_directory}/*".format(tablespace_directory=tablespace_directory))
 	rows.sort()
 
-	plpy.notice(rows)
-	plpy.notice('found %d tablespaces' % len(rows))
-	plpy.notice('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces))
+	found_number_of_tablespaces = len(rows)
+	was_success = expected_number_of_tablespaces == found_number_of_tablespaces
+
+	result = []
+
+	if was_success:
+		result.append("Success")
+	else:
+		result.append("Failed")
+
+	result.append('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces))
+	result.append('found %d tablespaces' % found_number_of_tablespaces)
+	for row in rows:
+		result.append(str(row))
+	return result
 $$ language plpythonu;
 
 

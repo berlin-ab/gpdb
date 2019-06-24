@@ -55,14 +55,26 @@ create or replace function cleanup(content_id integer, tablespace_dir text) retu
 		checkpoint;
 	end;
 $$ LANGUAGE plpgsql;
-create or replace function list_tablespaces(expected_number_of_tablespaces integer, tablespace_directory text) returns void as $$
+create or replace function list_tablespaces(expected_number_of_tablespaces integer, tablespace_directory text) returns varchar[] as $$
 	import glob
 	rows = glob.glob("{tablespace_directory}/*".format(tablespace_directory=tablespace_directory))
 	rows.sort()
 
-	plpy.notice(rows)
-	plpy.notice('found %d tablespaces' % len(rows))
-	plpy.notice('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces))
+	found_number_of_tablespaces = len(rows)
+	was_success = expected_number_of_tablespaces == found_number_of_tablespaces
+
+	result = []
+
+	if was_success:
+		result.append("Success")
+	else:
+		result.append("Failed")
+
+	result.append('expected {expected_number_of_tablespaces} tablespaces'.format(expected_number_of_tablespaces=expected_number_of_tablespaces))
+	result.append('found %d tablespaces' % found_number_of_tablespaces)
+	for row in rows:
+		result.append(str(row))
+	return result
 $$ language plpythonu;
 create or replace function give_mirrors_time_to_catch_up() returns void as $$
 declare number_of_segments_behind integer;
@@ -133,15 +145,9 @@ select * from list_tablespace_catalog();
 (8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  []
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                     list_tablespaces                     
+----------------------------------------------------------
+ {Success,"expected 0 tablespaces","found 0 tablespaces"}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
@@ -190,15 +196,9 @@ select * from list_tablespace_catalog();
 (8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  []
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                     list_tablespaces                     
+----------------------------------------------------------
+ {Success,"expected 0 tablespaces","found 0 tablespaces"}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
@@ -247,15 +247,9 @@ select * from list_tablespace_catalog();
 (8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  []
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                     list_tablespaces                     
+----------------------------------------------------------
+ {Success,"expected 0 tablespaces","found 0 tablespaces"}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
@@ -302,15 +296,9 @@ select * from list_tablespace_catalog();
 (8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  []
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                     list_tablespaces                     
+----------------------------------------------------------
+ {Success,"expected 0 tablespaces","found 0 tablespaces"}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
@@ -371,15 +359,9 @@ select * from list_tablespace_catalog();
 (8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  ['/tmp/my_tablespace_for_testing/2']
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 1 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 1 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                                     list_tablespaces                                      
+-------------------------------------------------------------------------------------------
+ {Success,"expected 1 tablespaces","found 1 tablespaces",/tmp/my_tablespace_for_testing/2}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
@@ -442,15 +424,9 @@ select * from list_tablespace_catalog_without_oid();
 
 -- the tablespace should exist on disk
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  ['/tmp/my_tablespace_for_testing/1', '/tmp/my_tablespace_for_testing/2', '/tmp/my_tablespace_for_testing/3', '/tmp/my_tablespace_for_testing/4', '/tmp/my_tablespace_for_testing/5', '/tmp/my_tablespace_for_testing/6', '/tmp/my_tablespace_for_testing/7', '/tmp/my_tablespace_for_testing/8']
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 8 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 8 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                                                                                                                                                         list_tablespaces                                                                                                                                                         
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {Success,"expected 8 tablespaces","found 8 tablespaces",/tmp/my_tablespace_for_testing/1,/tmp/my_tablespace_for_testing/2,/tmp/my_tablespace_for_testing/3,/tmp/my_tablespace_for_testing/4,/tmp/my_tablespace_for_testing/5,/tmp/my_tablespace_for_testing/6,/tmp/my_tablespace_for_testing/7,/tmp/my_tablespace_for_testing/8}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
@@ -499,15 +475,9 @@ select * from list_tablespace_catalog();
 (8 rows)
 
 select list_tablespaces(:expected_number_of_tablespaces, :'tablespace_location');
-NOTICE:  []
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  found 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
-NOTICE:  expected 0 tablespaces
-CONTEXT:  PL/Python function "list_tablespaces"
- list_tablespaces 
-------------------
- 
+                     list_tablespaces                     
+----------------------------------------------------------
+ {Success,"expected 0 tablespaces","found 0 tablespaces"}
 (1 row)
 
 DROP TABLESPACE my_tablespace_for_testing;
