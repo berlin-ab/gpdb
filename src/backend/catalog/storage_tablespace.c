@@ -1,5 +1,6 @@
+#include "c.h"
+
 #include "catalog/storage_tablespace.h"
-#include "utils/elog.h"
 
 
 static Oid pending_tablespace_scheduled_for_deletion;
