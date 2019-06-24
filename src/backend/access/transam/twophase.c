@@ -176,7 +176,6 @@ static void RecordTransactionCommitPrepared(TransactionId xid,
 								SharedInvalidationMessage *invalmsgs,
 								bool initfileinval);
 static void RecordTransactionAbortPrepared(TransactionId xid,
-							   Oid tablespace_oid_to_abort,
 							   int nchildren,
 							   TransactionId *children,
 							   int nrels,
@@ -965,7 +964,8 @@ typedef struct TwoPhaseFileHeader
 	int32		nabortrels;		/* number of delete-on-abort rels */
 	int32		ninvalmsgs;		/* number of cache invalidation messages */
 	bool		initfileinval;	/* does relcache init file need invalidation? */
-	Oid			tablespace_oid_to_abort;
+	Oid			tablespace_oid_to_delete_on_abort;
+	Oid			tablespace_oid_to_delete_on_commit;
 	char		gid[GIDSIZE];	/* GID for transaction */
 } TwoPhaseFileHeader;
 
@@ -1065,7 +1065,8 @@ StartPrepare(GlobalTransaction gxact)
 	hdr.database = proc->databaseId;
 	hdr.prepared_at = gxact->prepared_at;
 	hdr.owner = gxact->owner;
-	hdr.tablespace_oid_to_abort = GetPendingTablespaceForDeletion();
+	hdr.tablespace_oid_to_delete_on_abort = GetPendingTablespaceForDeletionForAbort();
+	hdr.tablespace_oid_to_delete_on_commit = GetPendingTablespaceForDeletionForCommit();
 	hdr.nsubxacts = xactGetCommittedChildren(&children);
 	hdr.ncommitrels = smgrGetPendingDeletes(true, &commitrels);
 	hdr.nabortrels = smgrGetPendingDeletes(false, &abortrels);
@@ -1383,6 +1384,12 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	/* Prevent cancel/die interrupt while cleaning up */
 	HOLD_INTERRUPTS();
 
+	ScheduleTablespaceDirectoryDeletionForCommit(
+		hdr->tablespace_oid_to_delete_on_commit);
+
+	ScheduleTablespaceDirectoryDeletionForAbort(
+		hdr->tablespace_oid_to_delete_on_abort);
+
 	/*
 	 * The order of operations here is critical: make the XLOG entry for
 	 * commit or abort, then mark the transaction committed or aborted in
@@ -1400,7 +1407,6 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 										hdr->initfileinval);
 	else
 		RecordTransactionAbortPrepared(xid,
-									   hdr->tablespace_oid_to_abort,
 									   hdr->nsubxacts, children,
 									   hdr->nabortrels, abortrels);
 
@@ -1427,12 +1433,15 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	{
 		delrels = commitrels;
 		ndelrels = hdr->ncommitrels;
+		DoPendingTablespaceDeletionForCommit();
+		UnscheduleTablespaceDirectoryDeletionForAbort();
 	}
 	else
 	{
 		delrels = abortrels;
 		ndelrels = hdr->nabortrels;
-		DoTablespaceDeletion(hdr->tablespace_oid_to_abort);
+		DoPendingTablespaceDeletionForAbort();
+		UnscheduleTablespaceDirectoryDeletionForCommit();
 	}
 
 	/* Make sure files supposed to be dropped are dropped */
@@ -1937,6 +1946,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 
 	xlrec.crec.dbId = MyDatabaseId;
 	xlrec.crec.tsId = MyDatabaseTableSpace;
+	xlrec.crec.tablespace_oid_to_delete_on_commit = GetPendingTablespaceForDeletionForCommit();
 	xlrec.crec.xact_time = GetCurrentTimestamp();
 	xlrec.crec.nrels = nrels;
 	xlrec.crec.nsubxacts = nchildren;
@@ -1974,7 +1984,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 	}
 	rdata[lastrdata].next = NULL;
 
-	SIMPLE_FAULT_INJECTOR("twophase_transaction_commit_prepared");
+	SIMPLE_FAULT_INJECTOR("before_xlog_xact_commit_prepared");
 
 	recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_COMMIT_PREPARED, rdata);
 
@@ -2023,7 +2033,6 @@ RecordTransactionCommitPrepared(TransactionId xid,
  */
 static void
 RecordTransactionAbortPrepared(TransactionId xid,
-							   Oid tablespace_oid_to_abort,
 							   int nchildren,
 							   TransactionId *children,
 							   int nrels,
@@ -2049,7 +2058,7 @@ RecordTransactionAbortPrepared(TransactionId xid,
 	xlrec.arec.xact_time = GetCurrentTimestamp();
 	xlrec.arec.nrels = nrels;
 	xlrec.arec.nsubxacts = nchildren;
-	xlrec.arec.tablespace_oid_to_abort = tablespace_oid_to_abort;
+	xlrec.arec.tablespace_oid_to_delete_on_abort = GetPendingTablespaceForDeletionForAbort();
 	rdata[0].data = (char *) (&xlrec);
 	rdata[0].len = MinSizeOfXactAbortPrepared;
 	rdata[0].buffer = InvalidBuffer;

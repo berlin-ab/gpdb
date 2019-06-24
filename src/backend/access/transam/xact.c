@@ -1314,6 +1314,9 @@ RecordTransactionCommit(void)
 
 	isDtxPrepared = isPreparedDtxTransaction();
 
+	elog(DEBUG5, "in record transaction commit with tablespace oid of: %u", 
+		GetPendingTablespaceForDeletionForCommit());
+
 	/*
 	 * If we haven't been assigned an XID yet, we neither can, nor do we want
 	 * to write a COMMIT record.
@@ -1432,6 +1435,9 @@ RecordTransactionCommit(void)
 			xlrec.nrels = nrels;
 			xlrec.nsubxacts = nchildren;
 			xlrec.nmsgs = nmsgs;
+			xlrec.tablespace_oid_to_delete_on_commit =
+				GetPendingTablespaceForDeletionForCommit();
+
 			rdata[0].data = (char *) (&xlrec);
 			rdata[0].len = MinSizeOfXactCommit;
 			rdata[0].buffer = InvalidBuffer;
@@ -1484,6 +1490,7 @@ RecordTransactionCommit(void)
 				 * be able to see this transaction only after distributed
 				 * commit xlog is written and the state is changed.
 				 */
+				elog(DEBUG5, "writing xlog_xact_distributed_commit");
 				recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_DISTRIBUTED_COMMIT, rdata);
 
 				insertedDistributedCommitted();
@@ -1518,6 +1525,7 @@ RecordTransactionCommit(void)
 			}
 			rdata[lastrdata].next = NULL;
 
+			elog(DEBUG5, "writing xlog_xact_commit_compact");
 			recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_COMMIT_COMPACT, rdata);
 		}
 	}
@@ -1909,7 +1917,7 @@ RecordTransactionAbort(bool isSubXact)
 		SetCurrentTransactionStopTimestamp();
 		xlrec.xact_time = xactStopTimestamp;
 	}
-	xlrec.tablespace_oid_to_abort = GetPendingTablespaceForDeletion();
+	xlrec.tablespace_oid_to_delete_on_abort = GetPendingTablespaceForDeletionForAbort();
 	xlrec.nrels = nrels;
 	xlrec.nsubxacts = nchildren;
 	rdata[0].data = (char *) (&xlrec);
@@ -2577,12 +2585,6 @@ StartTransaction(void)
 					  LocalDistribXact_DisplayString(MyProc->pgprocno))));
 }
 
-static void
-AtEOXact_TablespaceStorage(void)
-{
-	UnscheduleTablespaceDirectoryDeletion();
-}
-
 /*
  *	CommitTransaction
  *
@@ -2796,6 +2798,9 @@ CommitTransaction(void)
 
 	AtEOXact_MultiXact();
 
+	DoPendingTablespaceDeletionForCommit();
+	UnscheduleTablespaceDirectoryDeletionForAbort();
+
 	ResourceOwnerRelease(TopTransactionResourceOwner,
 						 RESOURCE_RELEASE_LOCKS,
 						 true, true);
@@ -2821,7 +2826,6 @@ CommitTransaction(void)
 	AtEOXact_on_commit_actions(true);
 	AtEOXact_Namespace(true);
 	AtEOXact_SMgr();
-	AtEOXact_TablespaceStorage();
 	AtEOXact_Files();
 	AtEOXact_ComboCid();
 	AtEOXact_HashTables(true);
@@ -3312,6 +3316,10 @@ AbortTransaction(void)
 		AtEOXact_RelationCache(false);
 		AtEOXact_Inval(false);
 		AtEOXact_MultiXact();
+
+		DoPendingTablespaceDeletionForAbort();
+		UnscheduleTablespaceDirectoryDeletionForCommit();
+
 		ResourceOwnerRelease(TopTransactionResourceOwner,
 							 RESOURCE_RELEASE_LOCKS,
 							 false, true);
@@ -3319,7 +3327,6 @@ AbortTransaction(void)
 							 RESOURCE_RELEASE_AFTER_LOCKS,
 							 false, true);
 		smgrDoPendingDeletes(false);
-		DoPendingTablespaceDeletion();
 
 		AtEOXact_AppendOnly();
 		AtEOXact_GUC(false, 1);
@@ -6031,6 +6038,7 @@ xact_get_distributed_info_from_commit(xl_xact_commit *xlrec)
 static void
 xact_redo_commit_internal(TransactionId xid, XLogRecPtr lsn,
 						  TransactionId *sub_xids, int nsubxacts,
+						  Oid tablespace_oid_to_delete,
 						  SharedInvalidationMessage *inval_msgs, int nmsgs,
 						  RelFileNodePendingDelete *xnodes, int nrels,
 						  Oid dbId, Oid tsId,
@@ -6041,6 +6049,8 @@ xact_redo_commit_internal(TransactionId xid, XLogRecPtr lsn,
 	TransactionId max_xid;
 
 	max_xid = TransactionIdLatest(xid, nsubxacts, sub_xids);
+
+	elog(DEBUG5, "in xact_redo_commit_internal with tablespace oid: %u", tablespace_oid_to_delete);
 
 	/*
 	 * Make sure nextXid is beyond any XID mentioned in the record.
@@ -6145,6 +6155,8 @@ xact_redo_commit_internal(TransactionId xid, XLogRecPtr lsn,
 		DropRelationFiles(xnodes, nrels, true);
 	}
 
+	DoTablespaceDeletionForRedoXlog(tablespace_oid_to_delete);
+
 	/*
 	 * We issue an XLogFlush() for the same reason we emit ForceSyncCommit()
 	 * in normal operation. For example, in CREATE DATABASE, we copy all files
@@ -6180,6 +6192,7 @@ xact_redo_commit(xl_xact_commit *xlrec,
 	inval_msgs = (SharedInvalidationMessage *) &(subxacts[xlrec->nsubxacts]);
 
 	xact_redo_commit_internal(xid, lsn, subxacts, xlrec->nsubxacts,
+	  						  xlrec->tablespace_oid_to_delete_on_commit,
 							  inval_msgs, xlrec->nmsgs,
 							  xlrec->xnodes, xlrec->nrels,
 							  xlrec->dbId,
@@ -6196,7 +6209,8 @@ static void
 xact_redo_commit_compact(xl_xact_commit_compact *xlrec,
 						 TransactionId xid, XLogRecPtr lsn)
 {
-	xact_redo_commit_internal(xid, lsn, xlrec->subxacts, xlrec->nsubxacts,
+	xact_redo_commit_internal(xid, lsn, xlrec->subxacts, xlrec->nsubxacts, 
+		InvalidOid, // TODO: what about compact?
 							  NULL, 0,	/* inval msgs */
 							  NULL, 0,	/* relfilenodes */
 							  InvalidOid,		/* dbId */
@@ -6304,6 +6318,8 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 			smgrdounlink(srel, true, xlrec->xnodes[i].relstorage);
 			smgrclose(srel);
 		}
+
+		DoTablespaceDeletionForRedoXlog(xlrec->tablespace_oid_to_delete_on_commit);
 	}
 
 	/*
@@ -6377,7 +6393,7 @@ xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 	/* Make sure files supposed to be dropped are dropped */
 	DropRelationFiles(xlrec->xnodes, xlrec->nrels, true);
 
-	DoTablespaceDeletion(xlrec->tablespace_oid_to_abort);
+	DoTablespaceDeletionForRedoXlog(xlrec->tablespace_oid_to_delete_on_abort);
 }
 
 static void

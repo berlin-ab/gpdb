@@ -148,6 +148,7 @@ typedef struct xl_xact_commit
 	int			nmsgs;			/* number of shared inval msgs */
 	Oid			dbId;			/* MyDatabaseId */
 	Oid			tsId;			/* MyDatabaseTableSpace */
+	Oid			tablespace_oid_to_delete_on_commit;
 	DistributedTransactionTimeStamp distribTimeStamp; /**/
 	DistributedTransactionId        distribXid;       /**/
 	/* Array of RelFileNode(s) to drop at commit */
@@ -180,7 +181,7 @@ typedef struct xl_xact_abort
 	time_t		xtime;
 	int			nrels;			/* number of RelFileNodes */
 	int			nsubxacts;		/* number of subtransaction XIDs */
-	Oid         tablespace_oid_to_abort;
+	Oid         tablespace_oid_to_delete_on_abort;
 	/* Array of RelFileNode(s) to drop at abort */
 	RelFileNodePendingDelete xnodes[1];		/* VARIABLE LENGTH ARRAY */
 	/* ARRAY OF ABORTED SUBTRANSACTION XIDs FOLLOWS */
