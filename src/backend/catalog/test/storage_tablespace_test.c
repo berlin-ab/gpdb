@@ -23,7 +23,8 @@ bool assert_enabled = true;
 
 void ExceptionalCondition(const char *conditionName,
 							const char *errorType,
-							const char *fileName, int lineNumber) __attribute__((noreturn)) {
+							const char *fileName, int lineNumber)
+{
 	assertion_thrown = true;
 }
 
