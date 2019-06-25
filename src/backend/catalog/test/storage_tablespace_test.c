@@ -21,7 +21,9 @@ static bool assertion_thrown = false;
  */
 bool assert_enabled = true;
 
-void ExceptionalCondition() {
+void ExceptionalCondition(const char *conditionName,
+							const char *errorType,
+							const char *fileName, int lineNumber) __attribute__((noreturn)) {
 	assertion_thrown = true;
 }
 
