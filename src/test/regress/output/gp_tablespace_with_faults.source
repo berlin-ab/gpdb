@@ -933,6 +933,85 @@ select cleanup(:content_id_under_test, :'tablespace_location');
 (1 row)
 
 --
+-- A panic before XLOG_XACT_PREPARED on primary
+--
+\set tablespace_location '/tmp/my_tablespace_for_testing'
+\set content_id_under_test 0
+\set fault_type panic
+\set fault_name before_xlog_xact_prepare
+\set expected_number_of_tablespaces 8
+select remove_tablespace_location_directory(:'tablespace_location');
+ remove_tablespace_location_directory 
+--------------------------------------
+ 
+(1 row)
+
+select remove_tablespace_location_directory(:'tablespace_location') from gp_dist_random('gp_id');
+ remove_tablespace_location_directory 
+--------------------------------------
+ 
+ 
+ 
+(3 rows)
+
+select setup_tablespace_location_dir_for_test(:'tablespace_location');
+ setup_tablespace_location_dir_for_test 
+----------------------------------------
+ 
+(1 row)
+
+CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
+select gp_inject_fault2(:'fault_name', :'fault_type', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault2 
+------------------
+ Success:
+(1 row)
+
+DROP TABLESPACE my_tablespace_for_testing;
+ERROR:  fault triggered, fault name:'before_xlog_xact_prepare' fault type:'panic'
+select give_mirrors_time_to_catch_up();
+ give_mirrors_time_to_catch_up 
+-------------------------------
+ 
+(1 row)
+
+select list_tablespace_dbid_dirs(:expected_number_of_tablespaces, :'tablespace_location');
+                                                                                                                                                    list_tablespace_dbid_dirs                                                                                                                                                     
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {Success,"expected 8 tablespaces","found 8 tablespaces",/tmp/my_tablespace_for_testing/1,/tmp/my_tablespace_for_testing/2,/tmp/my_tablespace_for_testing/3,/tmp/my_tablespace_for_testing/4,/tmp/my_tablespace_for_testing/5,/tmp/my_tablespace_for_testing/6,/tmp/my_tablespace_for_testing/7,/tmp/my_tablespace_for_testing/8}
+(1 row)
+
+select * from list_tablespace_catalog_without_oid(); -- the tablespaces should exist in the catalog
+ gp_segment_id |      tablespace_name      
+---------------+---------------------------
+             0 | my_tablespace_for_testing
+             0 | pg_default
+             0 | pg_global
+             1 | my_tablespace_for_testing
+             1 | pg_default
+             1 | pg_global
+             2 | my_tablespace_for_testing
+             2 | pg_default
+             2 | pg_global
+            -1 | my_tablespace_for_testing
+            -1 | pg_default
+            -1 | pg_global
+(12 rows)
+
+select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+ gp_inject_fault2 
+------------------
+ Success:
+(1 row)
+
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:content_id_under_test, :'tablespace_location');
+ cleanup 
+---------
+ 
+(1 row)
+
+--
 -- An error after XLOG_XACT_DISTRIBUTED_COMMIT on master
 -- tested manually, as a crash causes test to stop running.
 -- Success, expected 0 tablespaces, got 0 tablespaces
