@@ -1439,6 +1439,7 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 		delrels = abortrels;
 		ndelrels = hdr->nabortrels;
 		DoTablespaceDeletion(hdr->tablespace_oid_to_abort);
+		UnscheduleTablespaceDirectoryDeletionForCommit();
 	}
 
 	/* Make sure files supposed to be dropped are dropped */

@@ -393,6 +393,34 @@ select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_co
 select cleanup(:content_id_under_test, :'tablespace_location');
 
 
+--
+-- A panic after XLOG_XACT_PREPARED on primary
+--
+\set tablespace_location '/tmp/my_tablespace_for_testing'
+\set content_id_under_test 0
+\set fault_type panic
+\set fault_name after_xlog_xact_prepare_flushed
+
+select remove_tablespace_location_directory(:'tablespace_location');
+select remove_tablespace_location_directory(:'tablespace_location') from gp_dist_random('gp_id');
+select setup_tablespace_location_dir_for_test(:'tablespace_location');
+
+CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
+select gp_inject_fault2(:'fault_name', :'fault_type', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+DROP TABLESPACE my_tablespace_for_testing;
+select give_mirrors_time_to_catch_up();
+select list_tablespace_dbid_dirs(8, :'tablespace_location');
+select * from list_tablespace_catalog_without_oid(); -- the tablespaces should exist in the catalog
+select gp_inject_fault2('all', 'reset', dbid, hostname, port) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+DROP TABLESPACE my_tablespace_for_testing;
+select cleanup(:content_id_under_test, :'tablespace_location');
+
+--
+-- An error after XLOG_XACT_DISTRIBUTED_COMMIT on master
+-- tested manually, as a crash causes test to stop running.
+-- Success, expected 0 tablespaces, got 0 tablespaces
+--
+
 -- XLOG_TBLSPC_CREATE (on master)
 
 -- ? - then tablespace should not exist VIA ABORT
