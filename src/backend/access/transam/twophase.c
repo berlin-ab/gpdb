@@ -966,6 +966,7 @@ typedef struct TwoPhaseFileHeader
 	int32		ninvalmsgs;		/* number of cache invalidation messages */
 	bool		initfileinval;	/* does relcache init file need invalidation? */
 	Oid			tablespace_oid_to_abort;
+	Oid			tablespace_oid_to_delete_on_commit;
 	char		gid[GIDSIZE];	/* GID for transaction */
 } TwoPhaseFileHeader;
 
@@ -1066,6 +1067,7 @@ StartPrepare(GlobalTransaction gxact)
 	hdr.prepared_at = gxact->prepared_at;
 	hdr.owner = gxact->owner;
 	hdr.tablespace_oid_to_abort = GetPendingTablespaceForDeletionForAbort();
+	hdr.tablespace_oid_to_delete_on_commit = GetPendingTablespaceForDeletionForCommit();
 	hdr.nsubxacts = xactGetCommittedChildren(&children);
 	hdr.ncommitrels = smgrGetPendingDeletes(true, &commitrels);
 	hdr.nabortrels = smgrGetPendingDeletes(false, &abortrels);
@@ -1383,6 +1385,9 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	/* Prevent cancel/die interrupt while cleaning up */
 	HOLD_INTERRUPTS();
 
+	ScheduleTablespaceDirectoryDeletionForCommit(
+		hdr->tablespace_oid_to_delete_on_commit);
+
 	/*
 	 * The order of operations here is critical: make the XLOG entry for
 	 * commit or abort, then mark the transaction committed or aborted in
@@ -1427,6 +1432,7 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	{
 		delrels = commitrels;
 		ndelrels = hdr->ncommitrels;
+		DoPendingTablespaceDeletionForCommit();
 	}
 	else
 	{
@@ -1975,7 +1981,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 	}
 	rdata[lastrdata].next = NULL;
 
-	SIMPLE_FAULT_INJECTOR("twophase_transaction_commit_prepared");
+	SIMPLE_FAULT_INJECTOR("before_xlog_xact_commit_prepared");
 
 	recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_COMMIT_PREPARED, rdata);
 

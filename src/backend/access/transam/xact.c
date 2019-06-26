@@ -6330,7 +6330,7 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 			smgrdounlink(srel, true, xlrec->xnodes[i].relstorage);
 			smgrclose(srel);
 		}
-		
+
 		DoTablespaceDeletion(xlrec->tablespace_oid_to_delete);
 	}
 
