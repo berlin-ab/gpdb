@@ -22,7 +22,31 @@ static void check_partition_indexes(void);
 static void check_orphaned_toastrels(void);
 static void check_online_expansion(void);
 static void check_gphdfs_external_tables(void);
-static void check_gphdfs_user_roles(void);
+static bool check_gphdfs_user_roles(void);
+
+static
+__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)))
+void
+gp_check_failure(const char *restrict fmt,...)
+{
+	report_status(PG_REPORT, "fatal\n");
+
+	va_list		args;
+
+	va_start(args, fmt);
+	vprintf(_(fmt), args);
+	va_end(args);
+
+	fflush(stdout);
+}
+
+static inline void
+__attribute__((nonnull(1, 2)))
+gp_conduct_check(bool (*f) (void), bool *failed)
+{
+	if (!f())
+		*failed = true;
+}
 
 /*
  *	check_greenplum
@@ -35,13 +59,18 @@ static void check_gphdfs_user_roles(void);
 void
 check_greenplum(void)
 {
+	bool		failed = false;
+
 	check_online_expansion();
 	check_external_partition();
 	check_covering_aoindex();
 	check_partition_indexes();
 	check_orphaned_toastrels();
 	check_gphdfs_external_tables();
-	check_gphdfs_user_roles();
+	gp_conduct_check(check_gphdfs_user_roles, &failed);
+
+	if (failed)
+		pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
 }
 
 /*
@@ -544,7 +573,7 @@ check_gphdfs_external_tables(void)
  * Check if there are any remaining users with gphdfs roles.
  * We error if this is the case and let the users know how to proceed.
  */
-static void
+static bool
 check_gphdfs_user_roles(void)
 {
 	char		output_path[MAXPGPATH];
@@ -558,7 +587,7 @@ check_gphdfs_user_roles(void)
 
 	/* GPDB only supported gphdfs in this version range */
 	if (!(old_cluster.major_version >= 80215 && old_cluster.major_version < 80400))
-		return;
+		return true;
 
 	prep_status("Checking for users assigned the gphdfs role");
 
@@ -604,14 +633,16 @@ check_gphdfs_user_roles(void)
 	if (ntups > 0)
 	{
 		fclose(script);
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation contains roles that have gphdfs privileges.\n"
-			   "| These privileges need to be revoked before upgrade.  A list\n"
-			   "| of roles and their corresponding gphdfs privileges that\n"
-			   "| must be revoked is provided in the file:\n"
-			   "| \t%s\n\n", output_path);
+		gp_check_failure("| Your installation contains roles that have gphdfs privileges.\n"
+						 "| These privileges need to be revoked before upgrade.  A list\n"
+						 "| of roles and their corresponding gphdfs privileges that\n"
+						 "| must be revoked is provided in the file:\n"
+						 "| \t%s\n\n", output_path);
+		return false;
 	}
 	else
+	{
 		check_ok();
+		return true;
+	}
 }
