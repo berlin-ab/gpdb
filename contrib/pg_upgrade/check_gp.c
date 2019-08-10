@@ -17,11 +17,11 @@
 #include "pg_upgrade.h"
 
 static bool check_external_partition(void);
-static void check_covering_aoindex(void);
-static void check_partition_indexes(void);
-static void check_orphaned_toastrels(void);
-static void check_online_expansion(void);
-static void check_gphdfs_external_tables(void);
+static bool check_covering_aoindex(void);
+static bool check_partition_indexes(void);
+static bool check_orphaned_toastrels(void);
+static bool check_online_expansion(void);
+static bool check_gphdfs_external_tables(void);
 static bool check_gphdfs_user_roles(void);
 
 static
@@ -61,12 +61,12 @@ check_greenplum(void)
 {
 	bool		failed = false;
 
-	check_online_expansion();
+	gp_conduct_check(check_online_expansion, &failed);
 	gp_conduct_check(check_external_partition, &failed);
-	check_covering_aoindex();
-	check_partition_indexes();
-	check_orphaned_toastrels();
-	check_gphdfs_external_tables();
+	gp_conduct_check(check_covering_aoindex, &failed);
+	gp_conduct_check(check_partition_indexes, &failed);
+	gp_conduct_check(check_orphaned_toastrels, &failed);
+	gp_conduct_check(check_gphdfs_external_tables, &failed);
 	gp_conduct_check(check_gphdfs_user_roles, &failed);
 
 	if (failed)
@@ -79,7 +79,7 @@ check_greenplum(void)
  *	Check for online expansion status and refuse the upgrade if online
  *	expansion is in progress.
  */
-static void
+static bool
 check_online_expansion(void)
 {
 	bool		expansion = false;
@@ -89,14 +89,14 @@ check_online_expansion(void)
 	 * Only need to check cluster expansion status in gpdb6 or later.
 	 */
 	if (GET_MAJOR_VERSION(old_cluster.major_version) < 804)
-		return;
+		return true;
 
 	/*
-	 * We only need to check the cluster expansion status on master.
-	 * On the other hand the status can not be detected correctly on segments.
+	 * We only need to check the cluster expansion status on master. On the
+	 * other hand the status can not be detected correctly on segments.
 	 */
 	if (user_opts.segment_mode == SEGMENT)
-		return;
+		return true;
 
 	prep_status("Checking for online expansion status");
 
@@ -132,13 +132,14 @@ check_online_expansion(void)
 
 	if (expansion)
 	{
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation is in progress of online expansion,\n"
-			   "| must complete that job before the upgrade.\n\n");
+		gp_check_failure(
+						 "| Your installation is in progress of online expansion,\n"
+						 "| must complete that job before the upgrade.\n\n");
+		return false;
 	}
-	else
-		check_ok();
+
+	check_ok();
+	return true;
 }
 
 /*
@@ -219,11 +220,9 @@ check_external_partition(void)
 						 "| \t%s\n\n", output_path);
 		return false;
 	}
-	else
-	{
-		check_ok();
-		return true;
-	}
+
+	check_ok();
+	return true;
 }
 
 /*
@@ -265,13 +264,13 @@ check_external_partition(void)
  *	creates the current state, but for the time being we disallow upgrades on
  *	cluster which exhibits this.
  */
-static void
+static bool
 check_covering_aoindex(void)
 {
-	char			output_path[MAXPGPATH];
-	FILE		   *script = NULL;
-	bool			found = false;
-	int				dbnum;
+	char		output_path[MAXPGPATH];
+	FILE	   *script = NULL;
+	bool		found = false;
+	int			dbnum;
 
 	prep_status("Checking for non-covering indexes on partitioned AO tables");
 
@@ -287,15 +286,15 @@ check_covering_aoindex(void)
 
 		conn = connectToServer(&old_cluster, active_db->db_name);
 		res = executeQueryOrDie(conn,
-			 "SELECT DISTINCT ao.relid, inh.inhrelid "
-			 "FROM   pg_catalog.pg_appendonly ao "
-			 "       JOIN pg_catalog.pg_inherits inh "
-			 "         ON (inh.inhparent = ao.relid) "
-			 "       JOIN pg_catalog.pg_appendonly aop "
-			 "         ON (inh.inhrelid = aop.relid AND aop.blkdirrelid = 0) "
-			 "       JOIN pg_catalog.pg_index i "
-			 "         ON (i.indrelid = ao.relid) "
-			 "WHERE  ao.blkdirrelid <> 0;");
+								"SELECT DISTINCT ao.relid, inh.inhrelid "
+								"FROM   pg_catalog.pg_appendonly ao "
+								"       JOIN pg_catalog.pg_inherits inh "
+								"         ON (inh.inhparent = ao.relid) "
+								"       JOIN pg_catalog.pg_appendonly aop "
+								"         ON (inh.inhrelid = aop.relid AND aop.blkdirrelid = 0) "
+								"       JOIN pg_catalog.pg_index i "
+								"         ON (i.indrelid = ao.relid) "
+								"WHERE  ao.blkdirrelid <> 0;");
 
 		ntups = PQntuples(res);
 
@@ -322,27 +321,28 @@ check_covering_aoindex(void)
 	if (found)
 	{
 		fclose(script);
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation contains partitioned append-only tables\n"
-			   "| with an index defined on the partition parent which isn't\n"
-			   "| present on all partition members.  These indexes must be\n"
-			   "| dropped before the upgrade.  A list of relations, and the\n"
-			   "| partitions in question is in the file:\n"
-			   "| \t%s\n\n", output_path);
+		gp_check_failure(
+						 "| Your installation contains partitioned append-only tables\n"
+						 "| with an index defined on the partition parent which isn't\n"
+						 "| present on all partition members.  These indexes must be\n"
+						 "| dropped before the upgrade.  A list of relations, and the\n"
+						 "| partitions in question is in the file:\n"
+						 "| \t%s\n\n", output_path);
+		return false;
 
 	}
-	else
-		check_ok();
+
+	check_ok();
+	return true;
 }
 
-static void
+static bool
 check_orphaned_toastrels(void)
 {
-	bool			found = false;
-	int				dbnum;
-	char			output_path[MAXPGPATH];
-	FILE		   *script = NULL;
+	bool		found = false;
+	int			dbnum;
+	char		output_path[MAXPGPATH];
+	FILE	   *script = NULL;
 
 	prep_status("Checking for orphaned TOAST relations");
 
@@ -386,16 +386,16 @@ check_orphaned_toastrels(void)
 	if (found)
 	{
 		fclose(script);
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation contains orphaned toast tables which\n"
-			   "| must be dropped before upgrade.\n"
-			   "| A list of the problem databases is in the file:\n"
-			   "| \t%s\n\n", output_path);
+		gp_check_failure(
+						 "| Your installation contains orphaned toast tables which\n"
+						 "| must be dropped before upgrade.\n"
+						 "| A list of the problem databases is in the file:\n"
+						 "| \t%s\n\n", output_path);
+		return false;
 	}
-	else
-		check_ok();
 
+	check_ok();
+	return true;
 }
 
 /*
@@ -407,13 +407,13 @@ check_orphaned_toastrels(void)
  *	invalidate the indexes forcing a REINDEX, there is little to be gained by
  *	handling them for the end-user.
  */
-static void
+static bool
 check_partition_indexes(void)
 {
-	int				dbnum;
-	FILE		   *script = NULL;
-	bool			found = false;
-	char			output_path[MAXPGPATH];
+	int			dbnum;
+	FILE	   *script = NULL;
+	bool		found = false;
+	char		output_path[MAXPGPATH];
 
 	prep_status("Checking for indexes on partitioned tables");
 
@@ -481,16 +481,17 @@ check_partition_indexes(void)
 	if (found)
 	{
 		fclose(script);
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation contains partitioned tables with\n"
-			   "| indexes defined on them.  Indexes on partition parents,\n"
-			   "| as well as children, must be dropped before upgrade.\n"
-			   "| A list of the problem tables is in the file:\n"
-			   "| \t%s\n\n", output_path);
+		gp_check_failure(
+						 "| Your installation contains partitioned tables with\n"
+						 "| indexes defined on them.  Indexes on partition parents,\n"
+						 "| as well as children, must be dropped before upgrade.\n"
+						 "| A list of the problem tables is in the file:\n"
+						 "| \t%s\n\n", output_path);
+		return false;
 	}
-	else
-		check_ok();
+
+	check_ok();
+	return true;
 }
 
 /*
@@ -500,7 +501,7 @@ check_partition_indexes(void)
  * We error if any gphdfs external tables remain and let the users know that,
  * any remaining gphdfs external tables have to be removed.
  */
-static void
+static bool
 check_gphdfs_external_tables(void)
 {
 	char		output_path[MAXPGPATH];
@@ -510,7 +511,7 @@ check_gphdfs_external_tables(void)
 
 	/* GPDB only supported gphdfs in this version range */
 	if (!(old_cluster.major_version >= 80215 && old_cluster.major_version < 80400))
-		return;
+		return true;
 
 	prep_status("Checking for gphdfs external tables");
 
@@ -527,13 +528,13 @@ check_gphdfs_external_tables(void)
 
 		conn = connectToServer(&old_cluster, active_db->db_name);
 		res = executeQueryOrDie(conn,
-			 "SELECT d.objid::regclass as tablename "
-			 "FROM pg_catalog.pg_depend d "
-			 "       JOIN pg_catalog.pg_exttable x ON ( d.objid = x.reloid ) "
-			 "       JOIN pg_catalog.pg_extprotocol p ON ( p.oid = d.refobjid ) "
-			 "       JOIN pg_catalog.pg_class c ON ( c.oid = d.objid ) "
-			 "       WHERE d.refclassid = 'pg_extprotocol'::regclass "
-			 "       AND p.ptcname = 'gphdfs';");
+								"SELECT d.objid::regclass as tablename "
+								"FROM pg_catalog.pg_depend d "
+								"       JOIN pg_catalog.pg_exttable x ON ( d.objid = x.reloid ) "
+								"       JOIN pg_catalog.pg_extprotocol p ON ( p.oid = d.refobjid ) "
+								"       JOIN pg_catalog.pg_class c ON ( c.oid = d.objid ) "
+								"       WHERE d.refclassid = 'pg_extprotocol'::regclass "
+								"       AND p.ptcname = 'gphdfs';");
 
 		ntups = PQntuples(res);
 
@@ -559,15 +560,16 @@ check_gphdfs_external_tables(void)
 	if (found)
 	{
 		fclose(script);
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation contains gphdfs external tables.  These \n"
-			   "| tables need to be dropped before upgrade.  A list of\n"
-			   "| external gphdfs tables to remove is provided in the file:\n"
-			   "| \t%s\n\n", output_path);
+		gp_check_failure(
+						 "| Your installation contains gphdfs external tables.  These \n"
+						 "| tables need to be dropped before upgrade.  A list of\n"
+						 "| external gphdfs tables to remove is provided in the file:\n"
+						 "| \t%s\n\n", output_path);
+		return false;
 	}
-	else
-		check_ok();
+
+	check_ok();
+	return true;
 }
 
 /*
@@ -610,15 +612,15 @@ check_gphdfs_user_roles(void)
 	{
 		if ((script = fopen(output_path, "w")) == NULL)
 			pg_log(PG_FATAL, "Could not create necessary file:  %s\n",
-					output_path);
+				   output_path);
 
 		i_hdfs_read = PQfnumber(res, "hdfs_read");
 		i_hdfs_write = PQfnumber(res, "hdfs_write");
 
 		for (rowno = 0; rowno < ntups; rowno++)
 		{
-			bool hasReadRole = (PQgetvalue(res, rowno, i_hdfs_read)[0] == 't');
-			bool hasWriteRole =(PQgetvalue(res, rowno, i_hdfs_write)[0] == 't');
+			bool		hasReadRole = (PQgetvalue(res, rowno, i_hdfs_read)[0] == 't');
+			bool		hasWriteRole = (PQgetvalue(res, rowno, i_hdfs_write)[0] == 't');
 
 			fprintf(script, "role \"%s\" has the gphdfs privileges:",
 					PQgetvalue(res, rowno, PQfnumber(res, "role")));
@@ -643,9 +645,7 @@ check_gphdfs_user_roles(void)
 						 "| \t%s\n\n", output_path);
 		return false;
 	}
-	else
-	{
-		check_ok();
-		return true;
-	}
+
+	check_ok();
+	return true;
 }
