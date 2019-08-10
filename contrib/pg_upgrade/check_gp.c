@@ -16,7 +16,7 @@
 
 #include "pg_upgrade.h"
 
-static void check_external_partition(void);
+static bool check_external_partition(void);
 static void check_covering_aoindex(void);
 static void check_partition_indexes(void);
 static void check_orphaned_toastrels(void);
@@ -62,7 +62,7 @@ check_greenplum(void)
 	bool		failed = false;
 
 	check_online_expansion();
-	check_external_partition();
+	gp_conduct_check(check_external_partition, &failed);
 	check_covering_aoindex();
 	check_partition_indexes();
 	check_orphaned_toastrels();
@@ -155,7 +155,7 @@ check_online_expansion(void)
  *	Check for the existence of external partitions and refuse the upgrade if
  *	found.
  */
-static void
+static bool
 check_external_partition(void)
 {
 	char		output_path[MAXPGPATH];
@@ -166,6 +166,7 @@ check_external_partition(void)
 	prep_status("Checking for external tables used in partitioning");
 
 	snprintf(output_path, sizeof(output_path), "external_partitions.txt");
+
 	/*
 	 * We need to query the inheritance catalog rather than the partitioning
 	 * catalogs since they are not available on the segments.
@@ -181,11 +182,11 @@ check_external_partition(void)
 
 		conn = connectToServer(&old_cluster, active_db->db_name);
 		res = executeQueryOrDie(conn,
-			 "SELECT cc.relname, c.relname AS partname, c.relnamespace "
-			 "FROM   pg_inherits i "
-			 "       JOIN pg_class c ON (i.inhrelid = c.oid AND c.relstorage = '%c') "
-			 "       JOIN pg_class cc ON (i.inhparent = cc.oid);",
-			 RELSTORAGE_EXTERNAL);
+								"SELECT cc.relname, c.relname AS partname, c.relnamespace "
+								"FROM   pg_inherits i "
+								"       JOIN pg_class c ON (i.inhrelid = c.oid AND c.relstorage = '%c') "
+								"       JOIN pg_class cc ON (i.inhparent = cc.oid);",
+								RELSTORAGE_EXTERNAL);
 
 		ntups = PQntuples(res);
 
@@ -211,16 +212,18 @@ check_external_partition(void)
 	if (found)
 	{
 		fclose(script);
-		pg_log(PG_REPORT, "fatal\n");
-		pg_log(PG_FATAL,
-			   "| Your installation contains partitioned tables with external\n"
-			   "| tables as partitions.  These partitions need to be removed\n"
-			   "| from the partition hierarchy before the upgrade.  A list of\n"
-			   "| external partitions to remove is in the file:\n"
-			   "| \t%s\n\n", output_path);
+		gp_check_failure("| Your installation contains partitioned tables with external\n"
+						 "| tables as partitions.  These partitions need to be removed\n"
+						 "| from the partition hierarchy before the upgrade.  A list of\n"
+						 "| external partitions to remove is in the file:\n"
+						 "| \t%s\n\n", output_path);
+		return false;
 	}
 	else
+	{
 		check_ok();
+		return true;
+	}
 }
 
 /*
