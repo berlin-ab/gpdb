@@ -12,7 +12,11 @@ OBJS = check.o controldata.o dump.o exec.o file.o function.o info.o \
 
 # Source files specific to Greenplum
 OBJS += aotable.o gpdb4_heap_convert.o version_gp.o \
-        check_gp.o file_gp.o reporting.o aomd_filehandler.o
+        file_gp.o reporting.o aomd_filehandler.o
+
+# Source files specific to Greenplum from gp directory
+OBJS += gp/definitions_utilities.o gp/checks.o gp/definitions_checks_list.o \
+		gp/check_greenplum.o
 
 PG_CPPFLAGS  = -DFRONTEND -DDLSUFFIX=\"$(DLSUFFIX)\" -I$(srcdir) -I$(libpq_srcdir)
 PG_LIBS = $(libpq_pgport)

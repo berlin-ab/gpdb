@@ -689,10 +689,6 @@ void new_gpdb_invalidate_bitmap_indexes(void);
 Oid *get_numeric_types(PGconn *conn);
 void old_GPDB5_check_for_unsupported_distribution_key_data_types(void);
 
-/* check_gp.c */
-
-void check_greenplum(void);
-
 /* reporting.c */
 
 void report_progress(ClusterInfo *cluster, progress_type op, char *fmt,...)

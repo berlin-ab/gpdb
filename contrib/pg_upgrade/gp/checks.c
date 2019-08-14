@@ -1,77 +1,12 @@
 /*
- *	check_gp.c
+ * contrib/pg_upgrade/gp/checks.h
  *
- *	Greenplum specific server checks and output routines
- *
- *	Any compatibility checks which are version dependent (testing for issues in
- *	specific versions of Greenplum) should be placed in their respective
- *	version_old_gpdb{MAJORVERSION}.c file.  The checks in this file supplement
- *	the checks present in check.c, which is the upstream file for performing
- *	checks against a PostgreSQL cluster.
- *
- *	Copyright (c) 2010, PostgreSQL Global Development Group
- *	Copyright (c) 2017-Present Pivotal Software, Inc
- *	contrib/pg_upgrade/check_gp.c
+ * Definitions of Greenplum-specific check functions
  */
 
-#include "pg_upgrade.h"
+#include "checks.h"
+#include "definitions.h"
 
-static bool check_external_partition(void);
-static bool check_covering_aoindex(void);
-static bool check_partition_indexes(void);
-static bool check_orphaned_toastrels(void);
-static bool check_online_expansion(void);
-static bool check_gphdfs_external_tables(void);
-static bool check_gphdfs_user_roles(void);
-
-static
-__attribute__((format(PG_PRINTF_ATTRIBUTE, 1, 2)))
-void
-gp_check_failure(const char *restrict fmt,...)
-{
-	report_status(PG_REPORT, "fatal\n");
-
-	va_list		args;
-
-	va_start(args, fmt);
-	vprintf(_(fmt), args);
-	va_end(args);
-
-	fflush(stdout);
-}
-
-static inline void
-__attribute__((nonnull(1)))
-conduct_check(bool (*check_function) (void))
-{
-	if (check_function())
-	{
-		check_ok();
-		return;
-	}
-
-	pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
-}
-
-/*
- *	check_greenplum
- *
- *	Rather than exporting all checks, we export a single API function which in
- *	turn is responsible for running Greenplum checks. This function should be
- *	executed after all PostgreSQL checks. The order of the checks should not
- *	matter.
- */
-void
-check_greenplum(void)
-{
-	conduct_check(check_online_expansion);
-	conduct_check(check_external_partition);
-	conduct_check(check_covering_aoindex);
-	conduct_check(check_partition_indexes);
-	conduct_check(check_orphaned_toastrels);
-	conduct_check(check_gphdfs_external_tables);
-	conduct_check(check_gphdfs_user_roles);
-}
 
 /*
  *	check_online_expansion
@@ -79,7 +14,7 @@ check_greenplum(void)
  *	Check for online expansion status and refuse the upgrade if online
  *	expansion is in progress.
  */
-static bool
+bool
 check_online_expansion(void)
 {
 	bool		expansion = false;
@@ -155,7 +90,7 @@ check_online_expansion(void)
  *	Check for the existence of external partitions and refuse the upgrade if
  *	found.
  */
-static bool
+bool
 check_external_partition(void)
 {
 	char		output_path[MAXPGPATH];
@@ -262,7 +197,7 @@ check_external_partition(void)
  *	creates the current state, but for the time being we disallow upgrades on
  *	cluster which exhibits this.
  */
-static bool
+bool
 check_covering_aoindex(void)
 {
 	char		output_path[MAXPGPATH];
@@ -333,7 +268,7 @@ check_covering_aoindex(void)
 	return true;
 }
 
-static bool
+bool
 check_orphaned_toastrels(void)
 {
 	bool		found = false;
@@ -403,7 +338,7 @@ check_orphaned_toastrels(void)
  *	invalidate the indexes forcing a REINDEX, there is little to be gained by
  *	handling them for the end-user.
  */
-static bool
+bool
 check_partition_indexes(void)
 {
 	int			dbnum;
@@ -496,7 +431,7 @@ check_partition_indexes(void)
  * We error if any gphdfs external tables remain and let the users know that,
  * any remaining gphdfs external tables have to be removed.
  */
-static bool
+bool
 check_gphdfs_external_tables(void)
 {
 	char		output_path[MAXPGPATH];
@@ -572,7 +507,7 @@ check_gphdfs_external_tables(void)
  * Check if there are any remaining users with gphdfs roles.
  * We error if this is the case and let the users know how to proceed.
  */
-static bool
+bool
 check_gphdfs_user_roles(void)
 {
 	char		output_path[MAXPGPATH];
