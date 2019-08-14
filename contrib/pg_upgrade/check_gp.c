@@ -41,11 +41,16 @@ gp_check_failure(const char *restrict fmt,...)
 }
 
 static inline void
-__attribute__((nonnull(1, 2)))
-gp_conduct_check(bool (*f) (void), bool *failed)
+__attribute__((nonnull(1)))
+conduct_check(bool (*check_function) (void))
 {
-	if (!f())
-		*failed = true;
+	if (check_function())
+	{
+		check_ok();
+		return;
+	}
+
+	pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
 }
 
 /*
@@ -59,18 +64,13 @@ gp_conduct_check(bool (*f) (void), bool *failed)
 void
 check_greenplum(void)
 {
-	bool		failed = false;
-
-	gp_conduct_check(check_online_expansion, &failed);
-	gp_conduct_check(check_external_partition, &failed);
-	gp_conduct_check(check_covering_aoindex, &failed);
-	gp_conduct_check(check_partition_indexes, &failed);
-	gp_conduct_check(check_orphaned_toastrels, &failed);
-	gp_conduct_check(check_gphdfs_external_tables, &failed);
-	gp_conduct_check(check_gphdfs_user_roles, &failed);
-
-	if (failed)
-		pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
+	conduct_check(check_online_expansion);
+	conduct_check(check_external_partition);
+	conduct_check(check_covering_aoindex);
+	conduct_check(check_partition_indexes);
+	conduct_check(check_orphaned_toastrels);
+	conduct_check(check_gphdfs_external_tables);
+	conduct_check(check_gphdfs_user_roles);
 }
 
 /*
@@ -138,7 +138,6 @@ check_online_expansion(void)
 		return false;
 	}
 
-	check_ok();
 	return true;
 }
 
@@ -221,7 +220,6 @@ check_external_partition(void)
 		return false;
 	}
 
-	check_ok();
 	return true;
 }
 
@@ -332,7 +330,6 @@ check_covering_aoindex(void)
 
 	}
 
-	check_ok();
 	return true;
 }
 
@@ -394,7 +391,6 @@ check_orphaned_toastrels(void)
 		return false;
 	}
 
-	check_ok();
 	return true;
 }
 
@@ -490,7 +486,6 @@ check_partition_indexes(void)
 		return false;
 	}
 
-	check_ok();
 	return true;
 }
 
@@ -568,7 +563,6 @@ check_gphdfs_external_tables(void)
 		return false;
 	}
 
-	check_ok();
 	return true;
 }
 
@@ -646,6 +640,5 @@ check_gphdfs_user_roles(void)
 		return false;
 	}
 
-	check_ok();
 	return true;
 }
