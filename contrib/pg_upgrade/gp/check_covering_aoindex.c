@@ -1,4 +1,6 @@
 #include "checks.h"
+#include "check_greenplum.h"
+#include "pg_upgrade.h"
 
 
 /*

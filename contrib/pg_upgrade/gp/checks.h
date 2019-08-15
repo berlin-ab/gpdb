@@ -6,8 +6,7 @@
  *
  * Declarations of Greenplum-specific check functions
  */
-
-#include "definitions.h"
+#include "c.h"
 
 
 extern bool check_external_partition(void);

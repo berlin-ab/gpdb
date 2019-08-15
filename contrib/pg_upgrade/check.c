@@ -13,6 +13,22 @@
 #include "pg_upgrade.h"
 
 #include "gp/check_greenplum.h"
+#include "gp/checks.h"
+
+
+check_function GP_CHECKS_LIST[] = {
+	check_online_expansion,
+	check_external_partition,
+	check_covering_aoindex,
+	check_partition_indexes,
+	check_orphaned_toastrels,
+	check_gphdfs_external_tables,
+	check_gphdfs_user_roles
+};
+
+
+size_t GP_CHECKS_LIST_LENGTH = sizeof(GP_CHECKS_LIST) / sizeof(GP_CHECKS_LIST[0]);
+
 
 static void set_locale_and_encoding(ClusterInfo *cluster);
 static void check_new_cluster_is_empty(void);
@@ -108,7 +124,7 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	/*
 	 * Check for various Greenplum failure cases
 	 */
-	check_greenplum();
+	check_greenplum(GP_CHECKS_LIST, GP_CHECKS_LIST_LENGTH);
 
 	/*
 	 * Upgrading from Greenplum 4.3.x which is based on PostgreSQL 8.2.

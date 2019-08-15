@@ -1,10 +1,12 @@
-#include "definitions.h"
+#include "check_greenplum.h"
+#include "pg_upgrade.h"
 
 /*
  * contrib/pg_upgrade/check_gp/check_gp_support.c
  *
  * Definitions of utility functions *normally* used to conduct pg_upgrade checks
  */
+
 
 void
 gp_check_failure(const char *restrict fmt,...)
@@ -19,6 +21,7 @@ gp_check_failure(const char *restrict fmt,...)
 
 	fflush(stdout);
 }
+
 
 void
 conduct_check(bool (*check_function) (void))

@@ -4,9 +4,9 @@
  * Definitions of Greenplum-specific check functions
  */
 
+#include "pg_upgrade.h"
 #include "checks.h"
-#include "definitions.h"
-
+#include "check_greenplum.h"
 
 /*
  *	check_online_expansion

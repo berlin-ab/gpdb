@@ -6,16 +6,15 @@
  */
 
 #include "check_greenplum.h"
-#include "definitions.h"
 
 
 void
-check_greenplum(void)
+check_greenplum(check_function gp_checks_list[], int gp_checks_list_length)
 {
 	size_t i;
 
-	for (i = 0; i < GP_CHECKS_LIST_LENGTH; i++)
+	for (i = 0; i < gp_checks_list_length; i++)
 	{
-		conduct_check(GP_CHECKS_LIST[i]);
+		conduct_check(gp_checks_list[i]);
 	}
 }
