@@ -5,6 +5,8 @@
  *	Portions Copyright (c) 2016-Present, Pivotal Software Inc
  *	contrib/pg_upgrade/pg_upgrade.h
  */
+#ifndef PG_UPGRADE_H
+#define PG_UPGRADE_H
 
 #include <unistd.h>
 #include <assert.h>
@@ -694,3 +696,5 @@ void old_GPDB5_check_for_unsupported_distribution_key_data_types(void);
 void report_progress(ClusterInfo *cluster, progress_type op, char *fmt,...)
 __attribute__((format(PG_PRINTF_ATTRIBUTE, 3, 4)));
 void close_progress(void);
+
+#endif
