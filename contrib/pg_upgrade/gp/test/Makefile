@@ -8,7 +8,9 @@ PG_LIBS = $(libpq_pgport)
 include $(top_srcdir)/src/Makefile.mock
 include $(top_srcdir)/src/Makefile.global
 
+
 test_flags = -I $(top_srcdir)/$(subdir)/../.. -I$(libpq_srcdir)
+
 
 code_under_test = ../check_covering_aoindex.o \
 	../definitions_utilities.o
@@ -34,9 +36,5 @@ check_integration_test.t: $(CMOCKERY_OBJS) check_integration_test.c
 		$(code_under_test) \
 		$(pg_upgrade_dependencies) \
 		$^ \
-		$(PG_LIBS_INTERNAL) \
-		$(LDFLAGS) \
-		$(LDFLAGS_EX) \
 		$(PG_LIBS) \
-		$(LIBS) \
 		-o check_integration_test.t

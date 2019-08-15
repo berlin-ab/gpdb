@@ -94,6 +94,8 @@ main(int argc, char **argv)
 	char	   *deletion_script_file_name = NULL;
 	bool		live_check = false;
 
+	old_cluster.use_utility_mode = true;
+	new_cluster.use_utility_mode = true;
 
 	/* Ensure that all files created by pg_upgrade are non-world-readable */
 	umask(S_IRWXG | S_IRWXO);

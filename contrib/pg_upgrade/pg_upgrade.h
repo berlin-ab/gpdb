@@ -409,6 +409,7 @@ typedef struct
 	const char *tablespace_suffix;		/* directory specification */
 
 	char	   *global_reserved_oids; /* OID preassign calls for shared objects */
+	bool        use_utility_mode;
 } ClusterInfo;
 
 
