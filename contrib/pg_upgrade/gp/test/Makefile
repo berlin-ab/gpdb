@@ -8,12 +8,11 @@ PG_LIBS = $(libpq_pgport)
 include $(top_srcdir)/src/Makefile.mock
 include $(top_srcdir)/src/Makefile.global
 
-
 test_flags = -I $(top_srcdir)/$(subdir)/../.. -I$(libpq_srcdir)
 
 
 code_under_test = ../check_covering_aoindex.o \
-	../definitions_utilities.o
+	../definitions_utilities.o \
 
 
 pg_upgrade_dependencies = ../../server.o \
@@ -26,15 +25,12 @@ pg_upgrade_dependencies = ../../server.o \
 	../../version_gp.o \
 	../../parallel.o \
 	../../file_gp.o \
-	../../reporting.c
+	../../reporting.o
 
 
-check_integration_test.t: $(CMOCKERY_OBJS) check_integration_test.c
-	make -C ../.. install
-
+check_integration_test.t: $(CMOCKERY_OBJS) $(pg_upgrade_dependencies) check_covering_aoindex_test.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(test_flags) \
 		$(code_under_test) \
-		$(pg_upgrade_dependencies) \
 		$^ \
 		$(PG_LIBS) \
-		-o check_integration_test.t
+		-o check_covering_aoindex.t
