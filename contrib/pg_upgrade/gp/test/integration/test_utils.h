@@ -5,7 +5,7 @@
  * Utility functions to conduct integration tests
  */
 
-#include "../../pg_upgrade.h"
+#include "pg_upgrade.h"
 #include "libpq-fe.h"
 
 

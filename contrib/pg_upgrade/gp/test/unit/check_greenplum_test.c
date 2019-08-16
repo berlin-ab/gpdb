@@ -3,7 +3,7 @@
 #include <setjmp.h>
 
 #include "cmockery.h"
-#include "../check_greenplum.h"
+#include "../../check_greenplum.h"
 
 
 static int number_of_passing_checks;

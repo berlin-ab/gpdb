@@ -9,7 +9,7 @@
 #include "cmockery.h"
 
 #include "test_utils.h"
-#include "../checks.h"
+#include "../../checks.h"
 
 
 static void 
