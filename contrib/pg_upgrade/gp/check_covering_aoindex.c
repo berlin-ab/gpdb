@@ -1,7 +1,6 @@
 #include "pg_upgrade.h"
 
 #include "checks.h"
-#include "check.h"
 
 
 /*
@@ -100,7 +99,7 @@ check_covering_aoindex(void)
 	if (found)
 	{
 		fclose(script);
-		gp_check_failure(
+		report_failure(
 			"| Your installation contains partitioned append-only tables\n"
 			"| with an index defined on the partition parent which isn't\n"
 			"| present on all partition members.  These indexes must be\n"

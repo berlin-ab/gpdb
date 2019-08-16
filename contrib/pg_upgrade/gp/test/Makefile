@@ -11,11 +11,11 @@ include $(top_srcdir)/src/Makefile.mock
 include $(top_srcdir)/src/Makefile.global
 
 
-test_flags = -I $(top_srcdir)/$(subdir)/../.. -I$(libpq_srcdir)
+test_flags = -I $(top_srcdir)/$(subdir)/../.. \
+	-I$(libpq_srcdir)
 
 
 code_under_test = ../check_covering_aoindex.o \
-	../definitions_utilities.o \
 	../checks.o
 
 
@@ -47,7 +47,7 @@ check_greenplum_test.t: $(CMOCKERY_OBJS) check_greenplum_test.c
 	make -C ../.. clean install
 
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(test_flags) \
-		../check_greenplum.o ../definitions_utilities.o \
+		../check_greenplum.o \
 		$^ \
 		$(PG_LIBS) \
 		-o check_greenplum_test.t

@@ -626,6 +626,9 @@ void        check_failed(void);
 const char *getErrorText(void);
 unsigned int str2uint(const char *str);
 void		pg_putenv(const char *var, const char *val);
+extern void
+report_failure(const char *restrict fmt,...)
+__attribute__((format(printf, 1, 2)));
 
 
 /* version.c */
