@@ -22,6 +22,7 @@ void check_failed(void)
 
 }
 
+
 void pg_log()
 {
 
@@ -32,6 +33,7 @@ void report_status()
 {
 
 }
+
 
 static bool failing_check(void)
 {
@@ -48,9 +50,18 @@ static bool passing_check(void)
 
 
 static void
-test_check_greenplum_runs_all_given_checks(void **state)
+setup()
 {
 	number_of_passing_checks = 0;
+	number_of_check_ok_checks = 0;
+	number_of_failing_checks = 0;
+}
+
+
+static void
+test_check_greenplum_runs_all_given_checks(void **state)
+{
+	setup();
 
 	check_function my_list[] = {
 		passing_check,
@@ -60,13 +71,14 @@ test_check_greenplum_runs_all_given_checks(void **state)
 	check_greenplum(my_list, 2);
 
 	assert_int_equal(number_of_passing_checks, 2);
+	assert_int_equal(number_of_failing_checks, 0);
 }
 
 
 static void
 test_check_greenplum_calls_check_ok_for_success(void **state)
 {
-	number_of_check_ok_checks = 0;
+	setup();
 
 	check_function my_list[] = {
 		passing_check,
@@ -76,13 +88,14 @@ test_check_greenplum_calls_check_ok_for_success(void **state)
 	check_greenplum(my_list, 2);
 
 	assert_int_equal(number_of_check_ok_checks, 2);
+	assert_int_equal(number_of_failing_checks, 0);
 }
 
 
 static void
 test_check_greenplum_calls_gp_report_failure_on_failure(void **state)
 {
-	number_of_failing_checks = 0;
+	setup();
 
 	check_function my_list[] = {
 		passing_check,
@@ -92,6 +105,7 @@ test_check_greenplum_calls_gp_report_failure_on_failure(void **state)
 	check_greenplum(my_list, 2);
 
 	assert_int_equal(number_of_failing_checks, 1);
+	assert_int_equal(number_of_passing_checks, 1);
 }
 
 
