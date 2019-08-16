@@ -19,25 +19,12 @@ void check_ok(void)
 
 void check_failed(void)
 {
-
-}
-
-
-void pg_log()
-{
-
-}
-
-
-void report_status()
-{
-
+	number_of_failing_checks++;
 }
 
 
 static bool failing_check(void)
 {
-	number_of_failing_checks++;
 	return false;
 }
 
