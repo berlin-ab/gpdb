@@ -1,12 +1,12 @@
-#include "check_greenplum.h"
 #include "pg_upgrade.h"
+
+#include "check.h"
 
 /*
  * contrib/pg_upgrade/check_gp/check_gp_support.c
  *
  * Definitions of utility functions *normally* used to conduct pg_upgrade checks
  */
-
 
 void
 gp_check_failure(const char *restrict fmt,...)
@@ -20,17 +20,4 @@ gp_check_failure(const char *restrict fmt,...)
 	va_end(args);
 
 	fflush(stdout);
-}
-
-
-void
-conduct_check(bool (*check_function) (void))
-{
-	if (check_function())
-	{
-		check_ok();
-		return;
-	}
-
-	pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
 }

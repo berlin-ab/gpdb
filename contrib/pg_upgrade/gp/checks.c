@@ -5,8 +5,9 @@
  */
 
 #include "pg_upgrade.h"
+
+#include "check.h"
 #include "checks.h"
-#include "check_greenplum.h"
 
 /*
  *	check_online_expansion

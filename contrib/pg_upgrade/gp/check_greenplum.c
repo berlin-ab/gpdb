@@ -5,7 +5,23 @@
  * checks
  */
 
+#include "pg_upgrade.h"
+
+
 #include "check_greenplum.h"
+
+
+static void
+conduct_check(bool (*check_function) (void))
+{
+	if (check_function())
+	{
+		check_ok();
+		return;
+	}
+
+	pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
+}
 
 
 void

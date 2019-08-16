@@ -1,13 +1,13 @@
 #ifndef GPDB_CHECKS_H
 #define GPDB_CHECKS_H
 
+#include "c.h"
+
 /*
  * contrib/pg_upgrade/gp/checks.h
  *
  * Declarations of Greenplum-specific check functions
  */
-#include "c.h"
-
 
 extern bool check_external_partition(void);
 extern bool check_covering_aoindex(void);
