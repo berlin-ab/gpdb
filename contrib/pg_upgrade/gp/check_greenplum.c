@@ -5,32 +5,26 @@
  * checks
  */
 
-#include "pg_upgrade.h"
 
 
-#include "check_greenplum.h"
+#include "checks.h"
+#include "check_greenplum_internal.h"
 
 
-static void
-conduct_check(bool (*check_function) (void))
+void check_greenplum(void)
 {
-	if (check_function())
-	{
-		check_ok();
-		return;
-	}
+	check_function list[] = {
+		check_online_expansion,
+		check_external_partition,
+		check_covering_aoindex,
+		check_partition_indexes,
+		check_orphaned_toastrels,
+		check_gphdfs_external_tables,
+		check_gphdfs_user_roles
+	};
 
-	check_failed();
+	size_t length = sizeof(list) / sizeof(list[0]);
+
+	perform_greenplum_checks(list, length);
 }
 
-
-void
-check_greenplum(check_function gp_checks_list[], int gp_checks_list_length)
-{
-	size_t i;
-
-	for (i = 0; i < gp_checks_list_length; i++)
-	{
-		conduct_check(gp_checks_list[i]);
-	}
-}

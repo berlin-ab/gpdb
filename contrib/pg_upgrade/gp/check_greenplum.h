@@ -9,16 +9,12 @@
  */
 
 
-#include "c.h"
-
-typedef bool (*check_function)(void);
-
 /*
  * Conduct all greenplum checks, defined in GP_CHECKS_LIST
  *
  * This function should be executed after all PostgreSQL checks. The order of the checks should not matter.
  */
-extern void check_greenplum(check_function gp_checks_list[], int gp_checks_list_length);
+extern void check_greenplum(void);
 
 
 #endif //GPDB_CHECK_GREENPLUM_H

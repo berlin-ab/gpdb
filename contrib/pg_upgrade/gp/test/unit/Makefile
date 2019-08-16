@@ -17,6 +17,6 @@ check_greenplum_test.t: $(CMOCKERY_OBJS) check_greenplum_test.c
 	make -C ../../.. clean install
 
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(test_flags) \
-		../../check_greenplum.o \
+		../../check_greenplum_internal.o \
 		$^ \
 		-o check_greenplum_test.t

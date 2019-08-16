@@ -13,7 +13,6 @@
 #include "pg_upgrade.h"
 
 #include "gp/check_greenplum.h"
-#include "gp/checks_list.h"
 
 
 static void set_locale_and_encoding(ClusterInfo *cluster);
@@ -110,7 +109,7 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	/*
 	 * Check for various Greenplum failure cases
 	 */
-	check_greenplum(GP_CHECKS_LIST, GP_CHECKS_LIST_LENGTH);
+	check_greenplum();
 
 	/*
 	 * Upgrading from Greenplum 4.3.x which is based on PostgreSQL 8.2.
