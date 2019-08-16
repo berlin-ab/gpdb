@@ -1,16 +1,5 @@
 #include "test_utils.h"
 
-ClusterInfo old_cluster;
-ClusterInfo new_cluster;
-OSInfo os_info;
-UserOpts user_opts;
-
-bool
-exec_prog(const char *log_file, const char *opt_log_file,
-          bool throw_error, const char *fmt,...){
-	return true;
-}
-
 void
 executeQuery(PGconn *conn, const char *fmt,...)
 {

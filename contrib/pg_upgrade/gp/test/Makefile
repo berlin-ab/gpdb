@@ -32,7 +32,7 @@ pg_upgrade_dependencies = ../../server.o \
 	../../reporting.o
 
 
-check_integration_test.t: $(CMOCKERY_OBJS) check_covering_aoindex_test.c test_utils.c
+check_integration_test.t: $(CMOCKERY_OBJS) check_covering_aoindex_test.c test_utils.c pg_upgrade_fakes.c
 	make -C ../.. clean install
 	
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(test_flags) \
