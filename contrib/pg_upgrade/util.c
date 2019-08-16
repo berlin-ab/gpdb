@@ -177,6 +177,13 @@ check_ok(void)
 }
 
 
+void
+check_failed(void)
+{
+	pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
+}
+
+
 /*
  * quote_identifier()
  *		Properly double-quote a SQL identifier.

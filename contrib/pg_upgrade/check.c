@@ -16,20 +16,6 @@
 #include "gp/checks.h"
 
 
-check_function GP_CHECKS_LIST[] = {
-	check_online_expansion,
-	check_external_partition,
-	check_covering_aoindex,
-	check_partition_indexes,
-	check_orphaned_toastrels,
-	check_gphdfs_external_tables,
-	check_gphdfs_user_roles
-};
-
-
-size_t GP_CHECKS_LIST_LENGTH = sizeof(GP_CHECKS_LIST) / sizeof(GP_CHECKS_LIST[0]);
-
-
 static void set_locale_and_encoding(ClusterInfo *cluster);
 static void check_new_cluster_is_empty(void);
 static void check_locale_and_encoding(ControlData *oldctrl,
@@ -45,6 +31,20 @@ static void check_for_reg_data_type_usage(ClusterInfo *cluster);
 static void check_for_jsonb_9_4_usage(ClusterInfo *cluster);
 static void get_bin_version(ClusterInfo *cluster);
 static char *get_canonical_locale_name(int category, const char *locale);
+
+
+check_function GP_CHECKS_LIST[] = {
+	check_online_expansion,
+	check_external_partition,
+	check_covering_aoindex,
+	check_partition_indexes,
+	check_orphaned_toastrels,
+	check_gphdfs_external_tables,
+	check_gphdfs_user_roles
+};
+
+
+size_t GP_CHECKS_LIST_LENGTH = sizeof(GP_CHECKS_LIST) / sizeof(GP_CHECKS_LIST[0]);
 
 
 /*

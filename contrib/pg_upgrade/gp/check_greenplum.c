@@ -20,7 +20,7 @@ conduct_check(bool (*check_function) (void))
 		return;
 	}
 
-	pg_log(PG_FATAL, "One or more checks failed. See output above.\n");
+	check_failed();
 }
 
 

@@ -10,6 +10,7 @@
 
 
 #include "c.h"
+#include "checks.h"
 
 /*
  * Conduct all greenplum checks, defined in GP_CHECKS_LIST
