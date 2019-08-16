@@ -2,11 +2,14 @@ subdir=contrib/pg_upgrade/gp/test
 top_srcdir=../../../..
 top_builddir=../../../..
 
+
 TARGETS = check_integration_test check_greenplum_test
 PG_LIBS = $(libpq_pgport)
 
+
 include $(top_srcdir)/src/Makefile.mock
 include $(top_srcdir)/src/Makefile.global
+
 
 test_flags = -I $(top_srcdir)/$(subdir)/../.. -I$(libpq_srcdir)
 
@@ -29,7 +32,7 @@ pg_upgrade_dependencies = ../../server.o \
 	../../reporting.o
 
 
-check_integration_test.t: $(CMOCKERY_OBJS) check_covering_aoindex_test.c
+check_integration_test.t: $(CMOCKERY_OBJS) check_covering_aoindex_test.c test_utils.c
 	make -C ../.. clean install
 	
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(test_flags) \
