@@ -46,48 +46,40 @@ jobs:
         path: gpdb_pr
         status: pending
 
-    - task: compile_gpdb_open_source_centos6
-      file: gpdb_pr/concourse/tasks/run-pr-pipeline.yml
-      image: centos-gpdb-dev-6
-      input_mapping:
-        gpdb_src: gpdb_pr
-      params:
-        CONFIGURE_FLAGS: {{configure_flags}}
-      on_failure: &pr_failure
-        put: gpdb_pr
-        params:
-          path: gpdb_pr
-          status: failure
-      timeout: 30m
-
-    - aggregate:
-      - task: icw_planner_centos6
-        file: gpdb_pr/concourse/tasks/ic_gpdb.yml
+    aggregate:
+      - task: compile-and-run-tests-planner
+        file: gpdb_pr/concourse/tasks/run-pr-pipeline.yml
         image: centos-gpdb-dev-6
         input_mapping:
           gpdb_src: gpdb_pr
-          bin_gpdb: gpdb_artifacts
         params:
+          CONFIGURE_FLAGS: {{configure_flags}}
           MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
-          BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
           TEST_OS: centos
-          CONFIGURE_FLAGS: {{configure_flags}}
-        timeout: 1h
-        on_failure: *pr_failure
-
-      - task: icw_gporca_orca_centos6
-        file: gpdb_pr/concourse/tasks/ic_gpdb.yml
+          CONFIGURE_FLAGS: {{configure_flags}}        
+        on_failure: &pr_failure
+          put: gpdb_pr
+          params:
+            path: gpdb_pr
+            status: failure
+        timeout: 30m
+        
+      - task: compile-and-run-tests-orca
+        file: gpdb_pr/concourse/tasks/run-pr-pipeline.yml
         image: centos-gpdb-dev-6
         input_mapping:
           gpdb_src: gpdb_pr
-          bin_gpdb: gpdb_artifacts
         params:
-          MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
-          BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
-          TEST_OS: centos
           CONFIGURE_FLAGS: {{configure_flags}}
-        timeout: 2h30m
-        on_failure: *pr_failure
+          MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
+          TEST_OS: centos
+          CONFIGURE_FLAGS: {{configure_flags}}        
+        on_failure: &pr_failure
+          put: gpdb_pr
+          params:
+            path: gpdb_pr
+            status: failure
+        timeout: 30m
 
     - put: report_pr_success
       resource: gpdb_pr
