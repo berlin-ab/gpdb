@@ -46,27 +46,19 @@ jobs:
         path: gpdb_pr
         status: pending
 
-    - aggregate:
-      - task: compile_gpdb_open_source_centos6
-        file: gpdb_pr/concourse/tasks/compile_gpdb_open_source_centos.yml
-        image: centos-gpdb-dev-6
-        input_mapping:
-          gpdb_src: gpdb_pr
+    - task: compile_gpdb_open_source_centos6
+      file: gpdb_pr/concourse/tasks/compile_gpdb_open_source_centos.yml
+      image: centos-gpdb-dev-6
+      input_mapping:
+        gpdb_src: gpdb_pr
+      params:
+        CONFIGURE_FLAGS: {{configure_flags}}
+      on_failure: &pr_failure
+        put: gpdb_pr
         params:
-          CONFIGURE_FLAGS: {{configure_flags}}
-        on_failure: &pr_failure
-          put: gpdb_pr
-          params:
-            path: gpdb_pr
-            status: failure
-        timeout: 30m
-
-      - task: validate_pipeline
-        file: gpdb_pr/concourse/tasks/validate_pipeline.yml
-        image: centos-gpdb-dev-6
-        input_mapping:
-          gpdb_src: gpdb_pr
-        on_failure: *pr_failure
+          path: gpdb_pr
+          status: failure
+      timeout: 30m
 
     - aggregate:
       - task: icw_planner_centos6
