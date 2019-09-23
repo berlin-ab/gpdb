@@ -1,7 +1,3 @@
-## ======================================================================
-## resources
-## ======================================================================
-
 resource_types:
   - name: pull-request
     type: docker-image
@@ -46,34 +42,30 @@ jobs:
         path: gpdb_pr
         status: pending
 
-    aggregate:
+    - aggregate:
       - task: compile-and-run-tests-planner
         file: gpdb_pr/concourse/tasks/run-pr-pipeline.yml
         image: centos-gpdb-dev-6
         input_mapping:
           gpdb_src: gpdb_pr
         params:
-          CONFIGURE_FLAGS: {{configure_flags}}
           MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
           TEST_OS: centos
-          CONFIGURE_FLAGS: {{configure_flags}}        
         on_failure: &pr_failure
           put: gpdb_pr
           params:
             path: gpdb_pr
             status: failure
         timeout: 30m
-        
+
       - task: compile-and-run-tests-orca
         file: gpdb_pr/concourse/tasks/run-pr-pipeline.yml
         image: centos-gpdb-dev-6
         input_mapping:
           gpdb_src: gpdb_pr
         params:
-          CONFIGURE_FLAGS: {{configure_flags}}
           MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
           TEST_OS: centos
-          CONFIGURE_FLAGS: {{configure_flags}}        
         on_failure: &pr_failure
           put: gpdb_pr
           params:
