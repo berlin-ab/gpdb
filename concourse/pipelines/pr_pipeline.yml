@@ -17,7 +17,7 @@ resources:
   - name: gpdb_pr
     type: pull-request
     source:
-      repository: greenplum-db/gpdb
+      repository: berlin-ab/gpdb
       access_token: ((gpdb-git-access-token))
       base_branch: "5X_STABLE"
       ignore_paths:
@@ -47,7 +47,7 @@ jobs:
         status: pending
 
     - task: compile_gpdb_open_source_centos6
-      file: gpdb_pr/concourse/tasks/compile_gpdb_open_source_centos.yml
+      file: gpdb_pr/concourse/tasks/run-pr-pipeline.yml
       image: centos-gpdb-dev-6
       input_mapping:
         gpdb_src: gpdb_pr
