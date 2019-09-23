@@ -7,3 +7,5 @@ run:
   path: gpdb_src/concourse/scripts/run_pr_pipeline.bash
 params:
   CONFIGURE_FLAGS: ""
+  MAKE_TEST_COMMAND: ""
+  TEST_OS: ""
