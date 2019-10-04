@@ -14,6 +14,7 @@
 /*.sql
 /*.txt
 /*.sh
+/tablespace_map
 
 /scripts/gpdb5-cluster
 /scripts/gpdb6-cluster

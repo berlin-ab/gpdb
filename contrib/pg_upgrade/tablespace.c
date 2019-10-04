@@ -47,17 +47,25 @@ get_tablespace_paths(void)
 	int			i_spclocation;
 	char		query[QUERY_ALLOC];
 
-	snprintf(query, sizeof(query),
-			 "SELECT	%s "
-			 "FROM	pg_catalog.pg_tablespace "
-			 "WHERE	spcname != 'pg_default' AND "
-			 "		spcname != 'pg_global'",
-	/*
-	 * 9.2 removed the spclocation column in upstream postgres, in GPDB it was
-	 * removed in 6.0.0 during the 8.4 merge
-	 */
-			 (GET_MAJOR_VERSION(old_cluster.major_version) <= 803) ?
-	"spclocation" : "pg_catalog.pg_tablespace_location(oid) AS spclocation");
+	if (GET_MAJOR_VERSION(old_cluster.major_version) <= 803)
+	{
+		/*
+		 * 9.2 removed the spclocation column in upstream postgres, in GPDB it was
+		 * removed in 6.0.0 during the 8.4 merge
+		 */
+		snprintf(query, sizeof(query),
+		         "SELECT pg_filespace_entry.fselocation as spclocation, pg_filespace_entry.fselocation || '/GP6/' || pg_catalog.pg_tablespace.oid :: text AS new_spclocation \n"
+		         "FROM pg_catalog.pg_tablespace inner join pg_filespace_entry \n    ON pg_catalog.pg_tablespace.spcfsoid = pg_filespace_entry.fsefsoid \n    "
+		         "WHERE spcname != 'pg_default' AND "
+		         "spcname != 'pg_global';");
+	}
+	else {
+		snprintf(query, sizeof(query), 
+			"SELECT pg_catalog.pg_tablespace_location(oid) AS spclocation "
+			"FROM	pg_catalog.pg_tablespace "
+			"WHERE	spcname != 'pg_default' AND "
+			"		spcname != 'pg_global'");
+	}
 
 	res = executeQueryOrDie(conn, "%s", query);
 
