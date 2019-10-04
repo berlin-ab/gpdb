@@ -20,6 +20,6 @@ stopGpdbSixCluster(void)
 		   ". ./gpdb6/greenplum_path.sh; \n"
 		   "export PGPORT=60000; \n"
 		   "export MASTER_DATA_DIRECTORY=./gpdb6-data/qddir/demoDataDir-1; \n"
-		   "./gpdb6/bin/gpstop -a"
+		   "./gpdb6/bin/gpstop -ay -M fast"
 		);
 }
