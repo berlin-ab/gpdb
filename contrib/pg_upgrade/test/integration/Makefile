@@ -51,7 +51,7 @@ test_dependencies = bdd-library/bdd.o \
 	$(scenario_objs) \
 	$(CMOCKERY_OBJS)
 
-debugging_flags = -Og -g
+debugging_flags = -Og -g -fsanitize=address
 
 greenplum_five_to_greenplum_six_upgrade_test_suite.t: greenplum_five_to_greenplum_six_upgrade_test_suite.o $(test_dependencies)
 	$(CC) $(CFLAGS) $(debugging_flags) $^ $(libpq_pgport) $(LDFLAGS) -o $@

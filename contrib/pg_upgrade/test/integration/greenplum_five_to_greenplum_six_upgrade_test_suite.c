@@ -15,6 +15,7 @@
 #include "scenarios/data_checksum_mismatch.h"
 #include "scenarios/pl_function.h"
 #include "scenarios/user_defined_types.h"
+#include "scenarios/filespaces_to_tablespaces.h"
 
 #include "utilities/gpdb5-cluster.h"
 #include "utilities/gpdb6-cluster.h"
@@ -44,7 +45,8 @@ main(int argc, char *argv[])
 {
 	cmockery_parse_arguments(argc, argv);
 
-	const		UnitTest tests[] = {
+	const UnitTest tests[] = {
+		unit_test_setup_teardown(test_a_filespace_can_be_upgraded_into_new_tablespaces, setup, teardown),
 		unit_test_setup_teardown(test_clusters_with_different_checksum_version_cannot_be_upgraded, setup, teardown),
 		unit_test_setup_teardown(test_an_ao_table_with_data_can_be_upgraded, setup, teardown),
 		unit_test_setup_teardown(test_an_aocs_table_with_data_can_be_upgraded, setup, teardown),

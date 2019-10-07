@@ -44,7 +44,7 @@ copy_configuration_files_from_backup_to_datadirs(char *segment_path)
 }
 
 static void
-execute_pg_upgrade_for_qd(char *segment_path)
+upgradeMaster(char *segment_path, int old_gp_dbid, int new_gp_dbid)
 {
 	char		buffer[2000];
 
@@ -56,25 +56,37 @@ execute_pg_upgrade_for_qd(char *segment_path)
 			"--new-bindir=./gpdb6/bin "
 			"--old-datadir=./gpdb5-data/%s "
 			"--new-datadir=./gpdb6-data/%s "
-			,segment_path, segment_path);
+			"--old-gp-dbid=%d "
+			"--new-gp-dbid=%d ",
+			segment_path, segment_path, old_gp_dbid, new_gp_dbid);
 
 	system(buffer);
 }
 
 static void
-execute_pg_upgrade_for_primary(char *segment_path)
+copy_tablespace_from(char *tablespace_location_directory, int source_dbid, int destination_dbid)
 {
-	char		buffer[2000];
+	char buffer[2000];
 
-	sprintf(buffer, ""
-			"./gpdb6/bin/pg_upgrade "
-			"--mode=segment "
-			"--link "
-			"--old-bindir=./gpdb5/bin "
-			"--new-bindir=./gpdb6/bin "
-			"--old-datadir=./gpdb5-data/%s "
-			"--new-datadir=./gpdb6-data/%s "
-			,segment_path, segment_path);
+	sprintf(buffer,
+	        "rsync -a --delete "
+	        "%s/%d/ "
+	        "%s/%d ",
+	        tablespace_location_directory,
+	        source_dbid,
+	        tablespace_location_directory,
+	        destination_dbid);
+	system(buffer);
+}
+
+static void
+update_symlinks_for_tablespaces_from(char *segment_path, char *new_tablespace_path)
+{
+	char buffer[2000];
+
+	sprintf(buffer, "find ./gpdb6-data/%s/pg_tblspc/* | xargs -I '{}' ln -sfn %s '{}'",
+		segment_path,
+		new_tablespace_path);
 
 	system(buffer);
 }
@@ -82,8 +94,8 @@ execute_pg_upgrade_for_primary(char *segment_path)
 static void
 copy_master_data_directory_into_segment_data_directory(char *segment_path)
 {
-	char		buffer[2000];
-	char	   *master_data_directory_path = "qddir/demoDataDir-1";
+	char buffer[2000];
+	char *master_data_directory_path = "qddir/demoDataDir-1";
 
 	sprintf(buffer,
 			"rsync -a --delete "
@@ -91,61 +103,111 @@ copy_master_data_directory_into_segment_data_directory(char *segment_path)
 			"./gpdb6-data/%s ",
 			master_data_directory_path,
 			segment_path);
+	
+	system(buffer);
+}
+
+static void
+upgradeMasterWithTablespaces(char *segment_path, int old_gp_dbid, int new_gp_dbid, char *mappingFilePath)
+{
+	char		buffer[2000];
+
+	sprintf(buffer, ""
+			"./gpdb6/bin/pg_upgrade --retain "
+			"--mode=dispatcher "
+			"--link "
+			"--old-bindir=./gpdb5/bin "
+			"--new-bindir=./gpdb6/bin "
+			"--old-datadir=./gpdb5-data/%s "
+			"--new-datadir=./gpdb6-data/%s "
+			"--old-gp-dbid=%d "
+			"--new-gp-dbid=%d "
+			"--old-tablespaces-file=%s ",
+			segment_path, segment_path, old_gp_dbid, new_gp_dbid, mappingFilePath);
 
 	system(buffer);
 }
 
 static void
-upgradeSegment(char *segment_path)
+upgradeSegment(char *segment_path, int old_gp_dbid, int new_gp_dbid)
 {
-	copy_master_data_directory_into_segment_data_directory(segment_path);
-	execute_pg_upgrade_for_primary(segment_path);
+	char		buffer[2000];
+
+	copy_master_data_directory_into_segment_data_directory(
+		segment_path);
+
+	sprintf(buffer, ""
+			"./gpdb6/bin/pg_upgrade --retain "
+			"--mode=segment "
+			"--link "
+			"--old-bindir=./gpdb5/bin "
+			"--new-bindir=./gpdb6/bin "
+			"--old-datadir=./gpdb5-data/%s "
+			"--new-datadir=./gpdb6-data/%s "
+			"--old-gp-dbid=%d "
+			"--new-gp-dbid=%d ",
+			segment_path, segment_path, old_gp_dbid, new_gp_dbid);
+
 	copy_configuration_files_from_backup_to_datadirs(
-													 segment_path);
+		segment_path);
+
+	system(buffer);
 }
 
 static void
-upgradeMaster(void)
+upgradeSegmentWithTablespaces(char *segment_path, int old_gp_dbid, int new_gp_dbid, char *mappingFilePath, char *tablespace_location_directory)
 {
-	char	   *master_data_directory_path = "qddir/demoDataDir-1";
+	char		buffer[2000];
+	char new_tablespace_path[1000];
 
-	execute_pg_upgrade_for_qd(master_data_directory_path);
+	sprintf(new_tablespace_path, "%s/%d", tablespace_location_directory, new_gp_dbid);
+
+	copy_master_data_directory_into_segment_data_directory(
+		segment_path);
+
+	copy_tablespace_from(tablespace_location_directory, 1, new_gp_dbid);
+
+	sprintf(buffer, ""
+			"./gpdb6/bin/pg_upgrade --retain "
+			"--mode=segment "
+			"--link "
+			"--old-bindir=./gpdb5/bin "
+			"--new-bindir=./gpdb6/bin "
+			"--old-datadir=./gpdb5-data/%s "
+			"--new-datadir=./gpdb6-data/%s "
+			"--old-gp-dbid=%d "
+			"--new-gp-dbid=%d "
+			"--old-tablespaces-file=%s ",
+			segment_path, segment_path, old_gp_dbid, new_gp_dbid, mappingFilePath);
+
+	system(buffer);
+
+	update_symlinks_for_tablespaces_from(
+		segment_path, new_tablespace_path);
 
 	copy_configuration_files_from_backup_to_datadirs(
-													 master_data_directory_path);
-}
-
-static void
-upgradeContentId0(void)
-{
-	char	   *segment_path = "dbfast1/demoDataDir0";
-
-	upgradeSegment(segment_path);
-}
-
-static void
-upgradeContentId1(void)
-{
-	char	   *segment_path = "dbfast2/demoDataDir1";
-
-	upgradeSegment(segment_path);
-}
-
-static void
-upgradeContentId2(void)
-{
-	char	   *segment_path = "dbfast3/demoDataDir2";
-
-	upgradeSegment(segment_path);
+		segment_path);
 }
 
 void
 performUpgrade(void)
 {
-	upgradeMaster();
-	upgradeContentId0();
-	upgradeContentId1();
-	upgradeContentId2();
+	upgradeMaster("qddir/demoDataDir-1", 1, 1);
+	copy_configuration_files_from_backup_to_datadirs(
+		"qddir/demoDataDir-1");
+	
+	upgradeSegment("dbfast1/demoDataDir0", 2, 2);
+	upgradeSegment("dbfast2/demoDataDir1", 3, 3);
+	upgradeSegment("dbfast3/demoDataDir2", 4, 4);
+}
+
+void
+performUpgradeWithTablespaces(char *mappingFilePath, char *tablespace_location_directory)
+{
+	upgradeMasterWithTablespaces("qddir/demoDataDir-1", 1, 1, mappingFilePath);
+	upgradeSegmentWithTablespaces("dbfast1/demoDataDir0", 2, 2, mappingFilePath, tablespace_location_directory);
+	upgradeSegmentWithTablespaces("dbfast2/demoDataDir1", 3, 3, mappingFilePath, tablespace_location_directory);
+	upgradeSegmentWithTablespaces("dbfast3/demoDataDir2", 4, 4, mappingFilePath, tablespace_location_directory);
 }
 
 void

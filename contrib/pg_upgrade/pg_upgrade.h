@@ -15,6 +15,8 @@
 #include "libpq-fe.h"
 #include "pqexpbuffer.h"
 
+#include "old_tablespace_file_contents.h"
+
 /* Use port in the private/dynamic port number range */
 #define DEF_PGUPORT			50432
 
@@ -407,6 +409,9 @@ typedef struct
 	const char *tablespace_suffix;		/* directory specification */
 
 	char	   *global_reserved_oids; /* OID preassign calls for shared objects */
+	int gp_dbid; /* greenplum database id of the cluster */
+
+	OldTablespaceFileContents *old_tablespace_file_contents;
 } ClusterInfo;
 
 
@@ -435,6 +440,7 @@ typedef struct
 	bool		progress;
 	segmentMode	segment_mode;
 	checksumMode checksum_mode;
+	char *old_tablespace_file_path;
 
 } UserOpts;
 
@@ -699,3 +705,11 @@ void check_greenplum(void);
 void report_progress(ClusterInfo *cluster, progress_type op, char *fmt,...)
 __attribute__((format(PG_PRINTF_ATTRIBUTE, 3, 4)));
 void close_progress(void);
+
+static inline bool
+is_gpdb6(ClusterInfo *cluster)
+{
+	return GET_MAJOR_VERSION(cluster->major_version) == 904;
+}
+
+

@@ -12,10 +12,10 @@
 #include "pg_upgrade.h"
 
 #include <sys/types.h>
+#include "old_tablespace_file_contents.h"
 
 static void get_tablespace_paths(void);
 static void set_tablespace_directory_suffix(ClusterInfo *cluster);
-
 
 void
 init_tablespaces(void)
@@ -31,6 +31,48 @@ init_tablespaces(void)
 				 "using tablespaces.\n");
 }
 
+static void 
+populate_os_info_with_file_contents(OldTablespaceFileContents *contents)
+{
+	os_info.num_old_tablespaces = contents->number_of_tablespaces;
+	os_info.old_tablespaces = (char **) pg_malloc(contents->number_of_tablespaces * sizeof(char *));
+
+	for (int i = 0; i < contents->number_of_tablespaces; i++)
+		os_info.old_tablespaces[i] = strdup(contents->old_tablespace_records[i]->tablespace_path);
+}
+
+static void verify_old_tablespace_paths(void)
+{
+	for (int tblnum = 0; tblnum < os_info.num_old_tablespaces; tblnum++)
+	{
+		struct stat statBuf;
+
+		/*
+		 * Check that the tablespace path exists and is a directory.
+		 * Effectively, this is checking only for tables/indexes in
+		 * non-existent tablespace directories.  Databases located in
+		 * non-existent tablespaces already throw a backend error.
+		 * Non-existent tablespace directories can occur when a data directory
+		 * that contains user tablespaces is moved as part of pg_upgrade
+		 * preparation and the symbolic links are not updated.
+		 */
+		if (stat(os_info.old_tablespaces[tblnum], &statBuf) != 0)
+		{
+			if (errno == ENOENT)
+				report_status(PG_FATAL,
+				              "tablespace directory \"%s\" does not exist\n",
+				              os_info.old_tablespaces[tblnum]);
+			else
+				report_status(PG_FATAL,
+				              "cannot stat() tablespace directory \"%s\": %s\n",
+				              os_info.old_tablespaces[tblnum], getErrorText());
+		}
+		if (!S_ISDIR(statBuf.st_mode))
+			report_status(PG_FATAL,
+			              "tablespace path \"%s\" is not a directory\n",
+			              os_info.old_tablespaces[tblnum]);
+	}
+}
 
 /*
  * get_tablespace_paths()
@@ -41,6 +83,12 @@ init_tablespaces(void)
 static void
 get_tablespace_paths(void)
 {
+	if (can_use_file_for_old_tablespaces(old_cluster.old_tablespace_file_contents)) {
+		populate_os_info_with_file_contents(old_cluster.old_tablespace_file_contents);
+		verify_old_tablespace_paths();
+		return;
+	}
+
 	PGconn	   *conn = connectToServer(&old_cluster, "template1");
 	PGresult   *res;
 	int			tblnum;
@@ -70,37 +118,13 @@ get_tablespace_paths(void)
 	i_spclocation = PQfnumber(res, "spclocation");
 
 	for (tblnum = 0; tblnum < os_info.num_old_tablespaces; tblnum++)
-	{
-		struct stat statBuf;
-
 		os_info.old_tablespaces[tblnum] = pg_strdup(
 									 PQgetvalue(res, tblnum, i_spclocation));
 
-		/*
-		 * Check that the tablespace path exists and is a directory.
-		 * Effectively, this is checking only for tables/indexes in
-		 * non-existent tablespace directories.  Databases located in
-		 * non-existent tablespaces already throw a backend error.
-		 * Non-existent tablespace directories can occur when a data directory
-		 * that contains user tablespaces is moved as part of pg_upgrade
-		 * preparation and the symbolic links are not updated.
-		 */
-		if (stat(os_info.old_tablespaces[tblnum], &statBuf) != 0)
-		{
-			if (errno == ENOENT)
-				report_status(PG_FATAL,
-							  "tablespace directory \"%s\" does not exist\n",
-							  os_info.old_tablespaces[tblnum]);
-			else
-				report_status(PG_FATAL,
-						   "cannot stat() tablespace directory \"%s\": %s\n",
-					   os_info.old_tablespaces[tblnum], getErrorText());
-		}
-		if (!S_ISDIR(statBuf.st_mode))
-			report_status(PG_FATAL,
-						  "tablespace path \"%s\" is not a directory\n",
-						  os_info.old_tablespaces[tblnum]);
-	}
+	/*
+	 * gpdb: verification logic has been extracted from the above loop for reuse
+	 */
+	verify_old_tablespace_paths();
 
 	PQclear(res);
 
@@ -110,9 +134,25 @@ get_tablespace_paths(void)
 }
 
 
+static char *
+get_gpdb6_tablespace_directory_suffix(ClusterInfo *cluster)
+{
+	return psprintf("/%d/GPDB_6_%d",
+		cluster->gp_dbid,
+		cluster->controldata.cat_ver);
+}
+
 static void
 set_tablespace_directory_suffix(ClusterInfo *cluster)
 {
+	/*
+	 * GPDB 6 introduced a new layout for tablespaces
+	 */
+	if (is_gpdb6(cluster)) {
+		cluster->tablespace_suffix = get_gpdb6_tablespace_directory_suffix(cluster);
+		return;
+	}
+
 	if (GET_MAJOR_VERSION(cluster->major_version) <= 804)
 		cluster->tablespace_suffix = pg_strdup("");
 	else
