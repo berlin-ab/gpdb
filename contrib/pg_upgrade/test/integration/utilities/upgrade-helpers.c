@@ -10,18 +10,15 @@
  * implements:
  */
 #include "upgrade-helpers.h"
+#include "postgres_fe.h"
 
 
 static void
 copy_file_from_backup_to_datadir(char *filename, char *segment_path)
 {
-	char		buffer[2000];
-
-	sprintf(buffer,
+	system(psprintf(
 			"cp gpdb6-data-copy/%s/%s gpdb6-data/%s/%s",
-			segment_path, filename, segment_path, filename);
-
-	system(buffer);
+			segment_path, filename, segment_path, filename));
 }
 
 static void
@@ -43,147 +40,107 @@ copy_configuration_files_from_backup_to_datadirs(char *segment_path)
 	}
 }
 
+static char *
+base_upgrade_executable_string(char *segment_path, int old_gp_dbid, int new_gp_dbid)
+{
+	return psprintf(
+		"./gpdb6/bin/pg_upgrade "
+		"--link "
+		"--old-bindir=./gpdb5/bin "
+		"--new-bindir=./gpdb6/bin "
+		"--old-datadir=./gpdb5-data/%s "
+		"--new-datadir=./gpdb6-data/%s "
+		"--old-gp-dbid=%d "
+		"--new-gp-dbid=%d ", 
+		segment_path, segment_path, old_gp_dbid, new_gp_dbid);
+}
+
 static void
 upgradeMaster(char *segment_path, int old_gp_dbid, int new_gp_dbid)
 {
-	char		buffer[2000];
-
-	sprintf(buffer, ""
-			"./gpdb6/bin/pg_upgrade "
-			"--mode=dispatcher "
-			"--link "
-			"--old-bindir=./gpdb5/bin "
-			"--new-bindir=./gpdb6/bin "
-			"--old-datadir=./gpdb5-data/%s "
-			"--new-datadir=./gpdb6-data/%s "
-			"--old-gp-dbid=%d "
-			"--new-gp-dbid=%d ",
-			segment_path, segment_path, old_gp_dbid, new_gp_dbid);
-
-	system(buffer);
+	system(psprintf(
+		"%s "
+		"--mode=dispatcher ",
+		base_upgrade_executable_string(segment_path, old_gp_dbid, new_gp_dbid)));
 }
 
 static void
 copy_tablespace_from(char *tablespace_location_directory, int source_dbid, int destination_dbid)
 {
-	char buffer[2000];
-
-	sprintf(buffer,
-	        "rsync -a --delete "
-	        "%s/%d/ "
-	        "%s/%d ",
-	        tablespace_location_directory,
-	        source_dbid,
-	        tablespace_location_directory,
-	        destination_dbid);
-	system(buffer);
+	system(psprintf(
+		"rsync -a --delete "
+		"%s/%d/ "
+		"%s/%d ",
+		tablespace_location_directory,
+		source_dbid,
+		tablespace_location_directory,
+		destination_dbid));
 }
 
 static void
 update_symlinks_for_tablespaces_from(char *segment_path, char *new_tablespace_path)
 {
-	char buffer[2000];
-
-	sprintf(buffer, "find ./gpdb6-data/%s/pg_tblspc/* | xargs -I '{}' ln -sfn %s '{}'",
+	system(psprintf("find ./gpdb6-data/%s/pg_tblspc/* | xargs -I '{}' ln -sfn %s '{}'",
 		segment_path,
-		new_tablespace_path);
-
-	system(buffer);
+		new_tablespace_path));
 }
 
 static void
 copy_master_data_directory_into_segment_data_directory(char *segment_path)
 {
-	char buffer[2000];
 	char *master_data_directory_path = "qddir/demoDataDir-1";
 
-	sprintf(buffer,
-			"rsync -a --delete "
-			"./gpdb6-data/%s/ "
-			"./gpdb6-data/%s ",
-			master_data_directory_path,
-			segment_path);
-	
-	system(buffer);
+	system(psprintf(
+		"rsync -a --delete "
+		"./gpdb6-data/%s/ "
+		"./gpdb6-data/%s ",
+		master_data_directory_path,
+		segment_path));
 }
 
 static void
 upgradeMasterWithTablespaces(char *segment_path, int old_gp_dbid, int new_gp_dbid, char *mappingFilePath)
 {
-	char		buffer[2000];
-
-	sprintf(buffer, ""
-			"./gpdb6/bin/pg_upgrade --retain "
-			"--mode=dispatcher "
-			"--link "
-			"--old-bindir=./gpdb5/bin "
-			"--new-bindir=./gpdb6/bin "
-			"--old-datadir=./gpdb5-data/%s "
-			"--new-datadir=./gpdb6-data/%s "
-			"--old-gp-dbid=%d "
-			"--new-gp-dbid=%d "
-			"--old-tablespaces-file=%s ",
-			segment_path, segment_path, old_gp_dbid, new_gp_dbid, mappingFilePath);
-
-	system(buffer);
+	system(psprintf(
+		"%s "
+		"--mode=dispatcher "
+		"--old-tablespaces-file=%s ",
+		base_upgrade_executable_string(segment_path, old_gp_dbid, new_gp_dbid), 
+		mappingFilePath));
 }
 
 static void
 upgradeSegment(char *segment_path, int old_gp_dbid, int new_gp_dbid)
 {
-	char		buffer[2000];
-
 	copy_master_data_directory_into_segment_data_directory(
 		segment_path);
-
-	sprintf(buffer, ""
-			"./gpdb6/bin/pg_upgrade --retain "
-			"--mode=segment "
-			"--link "
-			"--old-bindir=./gpdb5/bin "
-			"--new-bindir=./gpdb6/bin "
-			"--old-datadir=./gpdb5-data/%s "
-			"--new-datadir=./gpdb6-data/%s "
-			"--old-gp-dbid=%d "
-			"--new-gp-dbid=%d ",
-			segment_path, segment_path, old_gp_dbid, new_gp_dbid);
 
 	copy_configuration_files_from_backup_to_datadirs(
 		segment_path);
 
-	system(buffer);
+	system(psprintf(
+		"%s "
+		"--mode=segment ",
+		base_upgrade_executable_string(segment_path, old_gp_dbid, new_gp_dbid)));
 }
 
 static void
 upgradeSegmentWithTablespaces(char *segment_path, int old_gp_dbid, int new_gp_dbid, char *mappingFilePath, char *tablespace_location_directory)
 {
-	char		buffer[2000];
-	char new_tablespace_path[1000];
-
-	sprintf(new_tablespace_path, "%s/%d", tablespace_location_directory, new_gp_dbid);
-
 	copy_master_data_directory_into_segment_data_directory(
 		segment_path);
 
 	copy_tablespace_from(tablespace_location_directory, 1, new_gp_dbid);
 
-	sprintf(buffer, ""
-			"./gpdb6/bin/pg_upgrade --retain "
-			"--mode=segment "
-			"--link "
-			"--old-bindir=./gpdb5/bin "
-			"--new-bindir=./gpdb6/bin "
-			"--old-datadir=./gpdb5-data/%s "
-			"--new-datadir=./gpdb6-data/%s "
-			"--old-gp-dbid=%d "
-			"--new-gp-dbid=%d "
-			"--old-tablespaces-file=%s ",
-			segment_path, segment_path, old_gp_dbid, new_gp_dbid, mappingFilePath);
-
-	system(buffer);
+	system(psprintf(
+		"%s "
+		"--mode=segment "
+		"--old-tablespaces-file=%s ",
+		base_upgrade_executable_string(segment_path, old_gp_dbid, new_gp_dbid),
+		mappingFilePath));
 
 	update_symlinks_for_tablespaces_from(
-		segment_path, new_tablespace_path);
+		segment_path, psprintf("%s/%d", tablespace_location_directory, new_gp_dbid));
 
 	copy_configuration_files_from_backup_to_datadirs(
 		segment_path);
@@ -216,20 +173,20 @@ performUpgradeCheckFailsWithError(char *error_message)
 	char		buffer[2000];
 	int			count = 0;
 	char	   *master_data_directory_path = "qddir/demoDataDir-1";
+	int old_master_dbid = 1;
+	int new_master_dbid = 1;
 	FILE	   *output_file;
 	char	   *output;
 
-	sprintf(buffer, ""
-			"./gpdb6/bin/pg_upgrade "
-			"--check "
-			"--old-bindir=./gpdb5/bin "
-			"--new-bindir=./gpdb6/bin "
-			"--old-datadir=./gpdb5-data/%s "
-			"--new-datadir=./gpdb6-data/%s ",
-			master_data_directory_path, master_data_directory_path);
+	char *command = psprintf(
+		"%s"
+		"--check ",
+		base_upgrade_executable_string(master_data_directory_path, 
+			old_master_dbid, 
+			new_master_dbid));
 
 #ifndef WIN32
-	output_file = popen(buffer, "r");
+	output_file = popen(command, "r");
 
 	while ((output = fgets(buffer, sizeof(buffer), output_file)) != NULL)
 		if (strstr(output, error_message))
