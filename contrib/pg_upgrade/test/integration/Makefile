@@ -54,7 +54,7 @@ test_dependencies = bdd-library/bdd.o \
 debugging_flags = -Og -g -fsanitize=address
 
 greenplum_five_to_greenplum_six_upgrade_test_suite.t: greenplum_five_to_greenplum_six_upgrade_test_suite.o $(test_dependencies)
-	$(CC) $(CFLAGS) $(debugging_flags) $^ $(libpq_pgport) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(debugging_flags) $^ -l pthread $(libpq_pgport) $(LDFLAGS) -o $@
 
 clean:
 	rm -f $(OBJS) $(EXS)

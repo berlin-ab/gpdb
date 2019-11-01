@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "cmockery.h"
 #include "postgres_fe.h"
@@ -11,6 +12,7 @@
  * implements:
  */
 #include "upgrade-helpers.h"
+#define UPGRADE_BASE_PORT 50432
 
 
 static void
@@ -50,9 +52,15 @@ base_upgrade_executable_string(char *segment_path, int old_gp_dbid, int new_gp_d
 		"--new-bindir=./gpdb6/bin "
 		"--old-datadir=./gpdb5-data/%s "
 		"--new-datadir=./gpdb6-data/%s "
+		"--old-port=%d "
+		"--new-port=%d "
 		"--old-gp-dbid=%d "
 		"--new-gp-dbid=%d ", 
-		segment_path, segment_path, old_gp_dbid, new_gp_dbid);
+		segment_path, segment_path,
+		UPGRADE_BASE_PORT + old_gp_dbid,
+		UPGRADE_BASE_PORT + new_gp_dbid,
+		old_gp_dbid, new_gp_dbid
+		);
 }
 
 static void
@@ -146,16 +154,43 @@ upgradeSegmentWithTablespaces(char *segment_path, int old_gp_dbid, int new_gp_db
 		segment_path);
 }
 
+static void *
+parallel_upgradeSegment0(void *state)
+{
+	upgradeSegment("dbfast1/demoDataDir0", 2, 2);
+}
+
+static void *
+parallel_upgradeSegment1(void *state)
+{
+	upgradeSegment("dbfast2/demoDataDir1", 3, 3);
+}
+
+static void *
+parallel_upgradeSegment2(void *state)
+{
+	upgradeSegment("dbfast3/demoDataDir2", 4, 4);
+}
+
+
 void
 performUpgrade(void)
 {
 	upgradeMaster("qddir/demoDataDir-1", 1, 1);
 	copy_configuration_files_from_backup_to_datadirs(
 		"qddir/demoDataDir-1");
-	
-	upgradeSegment("dbfast1/demoDataDir0", 2, 2);
-	upgradeSegment("dbfast2/demoDataDir1", 3, 3);
-	upgradeSegment("dbfast3/demoDataDir2", 4, 4);
+
+	pthread_t thread_segment_zero;
+	pthread_t thread_segment_one;
+	pthread_t thread_segment_two;
+
+	pthread_create(&thread_segment_zero, NULL, parallel_upgradeSegment0, NULL);
+	pthread_create(&thread_segment_one, NULL, parallel_upgradeSegment1, NULL);
+	pthread_create(&thread_segment_two, NULL, parallel_upgradeSegment2, NULL);
+
+	pthread_join(thread_segment_zero, NULL);
+	pthread_join(thread_segment_one, NULL);
+	pthread_join(thread_segment_two, NULL);
 }
 
 void
