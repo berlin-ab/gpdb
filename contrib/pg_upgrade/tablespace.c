@@ -31,7 +31,7 @@ init_tablespaces(void)
 				 "using tablespaces.\n");
 }
 
-static void 
+static void
 populate_os_info_with_file_contents(OldTablespaceFileContents *contents)
 {
 	os_info.num_old_tablespaces = contents->number_of_tablespaces;
@@ -41,7 +41,8 @@ populate_os_info_with_file_contents(OldTablespaceFileContents *contents)
 		os_info.old_tablespaces[i] = strdup(contents->old_tablespace_records[i]->tablespace_path);
 }
 
-static void verify_old_tablespace_paths(void)
+static void
+verify_old_tablespace_paths(void)
 {
 	for (int tblnum = 0; tblnum < os_info.num_old_tablespaces; tblnum++)
 	{
