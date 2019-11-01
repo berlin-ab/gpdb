@@ -5,12 +5,12 @@
 #include <string.h>
 
 #include "cmockery.h"
+#include "postgres_fe.h"
 
 /*
  * implements:
  */
 #include "upgrade-helpers.h"
-#include "postgres_fe.h"
 
 
 static void
