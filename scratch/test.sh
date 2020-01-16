@@ -1,0 +1,2 @@
+gpstop -a
+gpstart -a

@@ -1,0 +1,4 @@
+
+# Testing gpstart
+127.0.0.1 masterhost
+127.0.0.1 standbyhost

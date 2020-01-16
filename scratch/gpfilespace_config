@@ -1,0 +1,5 @@
+filespace:foobar
+masterhost:1:/tmp/greenplum/filespaces/master/gpseg-1
+masterhost:2:/tmp/greenplum/filespaces/seg0/gpseg0
+masterhost:3:/tmp/greenplum/filespaces/seg1/gpseg1
+masterhost:4:/tmp/greenplum/filespaces/seg2/gpseg2
