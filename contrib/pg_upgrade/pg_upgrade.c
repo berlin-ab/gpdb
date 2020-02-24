@@ -187,6 +187,11 @@ main(int argc, char **argv)
 		freeze_master_data();
 	}
 
+	if (!is_greenplum_dispatcher_mode())
+	{
+//		truncate_gp_segment_configuration_relfilenode(&new_cluster);
+	}
+
 	stop_postmaster(false);
 
 	/*

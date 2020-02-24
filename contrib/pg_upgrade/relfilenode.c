@@ -168,7 +168,6 @@ get_pg_database_relfilenode(ClusterInfo *cluster)
 	PQfinish(conn);
 }
 
-
 /*
  * transfer_single_new_db()
  *

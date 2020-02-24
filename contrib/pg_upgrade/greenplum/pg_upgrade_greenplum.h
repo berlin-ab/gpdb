@@ -123,6 +123,10 @@ void populate_gpdb6_cluster_tablespace_suffix(ClusterInfo *cluster);
 bool is_gpdb_version_with_filespaces(ClusterInfo *cluster);
 void populate_os_info_with_file_contents(void);
 
+/* relfilenode_gp.c */
+void truncate_gp_segment_configuration_relfilenode(ClusterInfo *cluster);
+
+
 /* server_gp.c */
 char *greenplum_extra_pg_ctl_flags(GreenplumClusterInfo *info);
 
