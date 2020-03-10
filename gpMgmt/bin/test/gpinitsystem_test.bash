@@ -8,7 +8,7 @@ __cleanupTestUsers() {
 }
 
 mimic_gpinitsystem_setup() {
-  # mimic gpinitsystem setup
+  # ensure MASTER_PORT is set, it is needed by SET_GP_USER_PW
   GET_MASTER_PORT "$MASTER_DATA_DIRECTORY"
 
   # the return value set when performing ERROR_CHK
