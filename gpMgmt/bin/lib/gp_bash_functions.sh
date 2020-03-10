@@ -1113,7 +1113,15 @@ CHK_GPDB_ID () {
 
 SET_GP_USER_PW () {
     LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-    $PSQL -p $MASTER_PORT -d "$DEFAULTDB" -c"alter user \"$USER_NAME\" password '$GP_PASSWD';" >> $LOG_FILE 2>&1
+
+    local alter_statement="alter user :\"username\" password :'password';"
+
+    $PSQL --variable=ON_ERROR_STOP=1 \
+      -p $MASTER_PORT \
+      -d "$DEFAULTDB" \
+      --variable=username="$USER_NAME" \
+      --variable=password="$GP_PASSWD" <<< "$alter_statement" >> $LOG_FILE 2>&1
+
     ERROR_CHK $? "update Greenplum superuser password" 1
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
