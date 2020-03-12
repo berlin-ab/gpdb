@@ -52,7 +52,7 @@ it_should_quote_the_password_during_alter_user_in_SET_GP_USER_PW() {
   # then it should succeed
   if [ "$RETVAL" != "0" ]; then
     local error_message="$(tail -n 10 "$LOG_FILE")"
-    echo "got an exit status of $EXIT_STATUS while running SET_GP_USER_PW for $USER_NAME with password $GP_PASSWD, wanted success: $error_message"
+    echo "got an exit status of $RETVAL while running SET_GP_USER_PW for $USER_NAME with password $GP_PASSWD, wanted success: $error_message"
     exit 1
   fi
 }
